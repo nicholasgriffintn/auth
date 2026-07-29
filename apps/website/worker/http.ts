@@ -229,6 +229,7 @@ function authErrorStatus(cause: unknown): number {
   if (cause.code === "rate_limited") return 429;
   if (cause.code === "session_expired") return 401;
   if (cause.code === "provider_error") return 502;
+  if (cause.code === "storage_error") return 503;
   return 400;
 }
 

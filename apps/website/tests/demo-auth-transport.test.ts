@@ -354,3 +354,24 @@ test("the React transport presents safe authentication error messages", async ()
     globalThis.fetch = originalFetch;
   }
 });
+
+test("the React transport presents storage failures as temporary", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    Response.json({ error: "storage_error" }, { status: 503 });
+
+  try {
+    await assert.rejects(
+      demoAuthTransport.execute({
+        action: "sign_up",
+        values: {
+          email: "demo@example.com",
+          password: "unique-password",
+        },
+      }),
+      /^Error: Authentication is temporarily unavailable\. Try again\.$/u,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

@@ -4,7 +4,7 @@ import {
   type PasswordInput,
   type PasswordOperations,
 } from "@ngriffin_uk/auth-password";
-import { createPbkdf2Hasher } from "@ngriffin_uk/auth-password-hash/pbkdf2";
+import { createScryptHasher } from "@ngriffin_uk/auth-password-hash/node";
 
 import type { AuthStore } from "./auth-store";
 import {
@@ -13,7 +13,12 @@ import {
 } from "./storage-adapters.ts";
 import type { DemoUser } from "./types";
 
-const hasher = createPbkdf2Hasher();
+export const demoPasswordHasher = createScryptHasher({
+  cost: 2 ** 15,
+  blockSize: 8,
+  parallelism: 3,
+  maxMemoryBytes: 64 * 1_024 * 1_024,
+});
 
 export function passwordOperations(
   store: DurableObjectStub<AuthStore>,
@@ -21,7 +26,7 @@ export function passwordOperations(
   return createBaseAuth(store).use(
     passwordAuth({
       store: createPasswordStore(store),
-      hasher,
+      hasher: demoPasswordHasher,
     }),
   ).providers.password;
 }

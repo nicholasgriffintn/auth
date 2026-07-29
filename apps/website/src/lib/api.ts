@@ -179,6 +179,9 @@ function passwordErrorMessage(value: unknown): string {
   if (value.error === "rate_limited") {
     return "Too many attempts. Try again in a minute.";
   }
+  if (value.error === "storage_error") {
+    return "Authentication is temporarily unavailable. Try again.";
+  }
   if (value.error === "invalid_input") {
     return "Enter a valid email address and a password of at least 8 characters.";
   }

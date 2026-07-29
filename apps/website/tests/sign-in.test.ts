@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { AuthError } from "@ngriffin_uk/auth-core";
 import { encodeBase64Url } from "@ngriffin_uk/auth-encoding";
-import { createPbkdf2Hasher } from "@ngriffin_uk/auth-password-hash/pbkdf2";
 
 import { createAuthEncryption } from "../worker/encryption.ts";
 import {
@@ -14,6 +14,7 @@ import {
   issuePendingMfa,
   startPasswordSignIn,
 } from "../worker/sign-in.ts";
+import { demoPasswordHasher } from "../worker/password.ts";
 
 const user = {
   id: "user-1",
@@ -22,6 +23,17 @@ const user = {
   provider: "password",
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
 };
+const passwordHashPromise = demoPasswordHasher.hash("correct-password");
+
+test("the demo password hasher uses the Worker-compatible scrypt profile", async () => {
+  const passwordHash = await passwordHashPromise;
+
+  assert.match(passwordHash, /^\$scrypt\$ln=15,r=8,p=3\$/u);
+  assert.equal(
+    await demoPasswordHasher.verify("correct-password", passwordHash),
+    true,
+  );
+});
 
 test("password sign-in prefers passkeys and issues no session before MFA", async () => {
   const fixture = await signInFixture({ passkeys: 1, totp: true });
@@ -177,15 +189,24 @@ test("the HTTP boundary returns JSON for expected authentication failures", asyn
   assert.deepEqual(await expiredChallenge.json(), {
     error: "challenge_expired",
   });
+
+  const storageFailure = await withAuthErrorResponse(
+    "/api/password/sign-up",
+    () => {
+      throw new AuthError("storage_error");
+    },
+  );
+  assert.equal(storageFailure.status, 503);
+  assert.deepEqual(await storageFailure.json(), {
+    error: "storage_error",
+  });
 });
 
 async function signInFixture(input: {
   readonly passkeys: number;
   readonly totp: boolean;
 }) {
-  const passwordHash = await createPbkdf2Hasher({
-    iterations: 1,
-  }).hash("correct-password");
+  const passwordHash = await passwordHashPromise;
   const encodedEncryptionKey = encodeBase64Url(new Uint8Array(32).fill(9));
   const encryption = await createAuthEncryption(encodedEncryptionKey);
   const otpSecret = await encryption.encryptBytes(
