@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Configurable unstyled React authentication components",
   "type": "module",
   "sideEffects": false,
@@ -27,7 +27,7 @@
     "react": "^19.2.8"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "license": "Apache-2.0"
 }

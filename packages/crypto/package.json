@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-crypto",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Runtime-neutral authentication cryptography primitives",
   "type": "module",
   "sideEffects": false,
@@ -21,13 +21,13 @@
     "test": "tsc -p tsconfig.test.json && node --test .test-dist/**/*.test.js"
   },
   "peerDependencies": {
-    "@ngriffin_uk/auth-encoding": "^0.1.0"
+    "@ngriffin_uk/auth-encoding": "^0.2.0"
   },
   "devDependencies": {
     "@ngriffin_uk/auth-encoding": "workspace:*"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "license": "Apache-2.0"
 }

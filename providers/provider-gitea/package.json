@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-provider-gitea",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "gitea authentication provider for @ngriffin_uk/auth-core",
   "type": "module",
   "sideEffects": false,
@@ -20,15 +20,15 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
-    "@ngriffin_uk/auth-core": "^0.1.0",
-    "@ngriffin_uk/auth-oauth2": "^0.1.0"
+    "@ngriffin_uk/auth-core": "^0.2.0",
+    "@ngriffin_uk/auth-oauth2": "^1.0.0"
   },
   "devDependencies": {
     "@ngriffin_uk/auth-core": "workspace:*",
     "@ngriffin_uk/auth-oauth2": "workspace:*"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "license": "Apache-2.0"
 }

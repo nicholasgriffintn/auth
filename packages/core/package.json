@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Runtime-neutral authentication context and storage contracts",
   "type": "module",
   "sideEffects": false,
@@ -21,7 +21,7 @@
     "test": "tsc -p tsconfig.test.json && node --test .test-dist/**/*.test.js"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "license": "Apache-2.0"
 }

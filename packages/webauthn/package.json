@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-webauthn",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "WebAuthn registration and authentication middleware",
   "type": "module",
   "sideEffects": false,
@@ -26,7 +26,7 @@
     "@ngriffin_uk/auth-encoding": "workspace:^"
   },
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "license": "Apache-2.0"
 }
