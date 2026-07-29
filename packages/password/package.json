@@ -21,7 +21,7 @@
     "test": "tsc -p tsconfig.test.json && node --test .test-dist/**/*.test.js"
   },
   "peerDependencies": {
-    "@ngriffin_uk/auth-core": "^0.2.1",
+    "@ngriffin_uk/auth-core": "^0.2.2",
     "@ngriffin_uk/auth-password-hash": "^0.2.1"
   },
   "devDependencies": {

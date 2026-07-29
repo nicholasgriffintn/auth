@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-core
 
+## 0.2.2
+
+### Patch Changes
+
+- chore: update readme
+
 ## 0.2.1
 
 ### Patch Changes
