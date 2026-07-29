@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-core
 
+## 0.2.1
+
+### Patch Changes
+
+- chore: update license
+
 ## 0.2.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-password-hash",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Password hashing contracts and secure runtime implementations",
   "type": "module",
   "sideEffects": false,

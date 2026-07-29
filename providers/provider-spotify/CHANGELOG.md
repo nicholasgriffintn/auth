@@ -1,5 +1,14 @@
 # @ngriffin_uk/auth-provider-spotify
 
+## 1.0.1
+
+### Patch Changes
+
+- chore: update license
+- Updated dependencies
+  - @ngriffin_uk/auth-oauth2@1.0.1
+  - @ngriffin_uk/auth-core@0.2.1
+
 ## 1.0.0
 
 ### Minor Changes
