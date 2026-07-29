@@ -1,5 +1,14 @@
 # @ngriffin_uk/auth-provider-github
 
+## 1.0.2
+
+### Patch Changes
+
+- chore: hardening tweaks
+- Updated dependencies
+  - @ngriffin_uk/auth-oauth2@1.0.2
+  - @ngriffin_uk/auth-core@0.2.3
+
 ## 1.0.1
 
 ### Patch Changes

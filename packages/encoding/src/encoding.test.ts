@@ -41,6 +41,11 @@ describe("encoding primitives", () => {
     assert.throws(() => decodeHex("0"));
     assert.throws(() => decodeBase64("abc"));
     assert.throws(() => decodeBase64Url("a"));
+    assert.throws(() => decodeBase64Url("="));
+    assert.throws(() => decodeBase64Url("-_8=="));
     assert.throws(() => decodeBase32("MZ"));
+    assert.throws(() => decodeBase32("="));
+    assert.throws(() => decodeBase32("MY="));
+    assert.equal(textDecoder.decode(decodeBase32("MY======")), "f");
   });
 });

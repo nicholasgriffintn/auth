@@ -76,6 +76,79 @@ describe("createAuth", () => {
     assert.deepEqual(await auth.validateSession(issued.token), user);
   });
 
+  it("authenticates with one session lookup", async () => {
+    const now = new Date("2026-01-01T00:00:00.000Z");
+    const user: TestUser = {
+      id: "user-1",
+      email: "person@example.com",
+      createdAt: now,
+      displayName: "Person",
+    };
+    const stores = createStores(user);
+    let lookups = 0;
+    const auth = createAuth({
+      users: stores.users,
+      sessions: {
+        ...stores.sessionStore,
+        async findByTokenHash(tokenHash) {
+          lookups += 1;
+          return stores.sessionStore.findByTokenHash(tokenHash);
+        },
+      },
+      clock: () => now,
+      randomBytes: (length) => new Uint8Array(length).fill(12),
+    });
+    const issued = await auth.createSession(user.id);
+
+    assert.equal((await auth.authenticate(issued.token))?.user.id, user.id);
+    assert.equal(lookups, 1);
+  });
+
+  it("rejects invalid random-source output before storage", async () => {
+    const now = new Date("2026-01-01T00:00:00.000Z");
+    const user: TestUser = {
+      id: "user-1",
+      email: "person@example.com",
+      createdAt: now,
+      displayName: "Person",
+    };
+    const stores = createStores(user);
+    const auth = createAuth({
+      users: stores.users,
+      sessions: stores.sessionStore,
+      randomBytes: () => new Uint8Array(1),
+    });
+
+    await assert.rejects(
+      auth.createSession(user.id),
+      (error) =>
+        error instanceof AuthError && error.code === "insecure_runtime"
+    );
+    assert.equal(stores.sessions.size, 0);
+  });
+
+  it("rejects invalid clock output before storage", async () => {
+    const user: TestUser = {
+      id: "user-1",
+      email: "person@example.com",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      displayName: "Person",
+    };
+    const stores = createStores(user);
+    const auth = createAuth({
+      users: stores.users,
+      sessions: stores.sessionStore,
+      clock: () => new Date(Number.NaN),
+    });
+
+    await assert.rejects(
+      auth.createSession(user.id),
+      (error) =>
+        error instanceof AuthError && error.code === "invalid_input"
+    );
+    assert.equal(stores.sessions.size, 0);
+  });
+
   it("deletes expired sessions and rejects them", async () => {
     let now = new Date("2026-01-01T00:00:00.000Z");
     const user: TestUser = {

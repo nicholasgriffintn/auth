@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-cookie",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Strict cookie primitives with secure authentication defaults",
   "type": "module",
   "sideEffects": false,

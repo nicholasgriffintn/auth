@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-request
 
+## 0.2.2
+
+### Patch Changes
+
+- chore: hardening tweaks
+
 ## 0.2.1
 
 ### Patch Changes

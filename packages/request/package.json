@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-request",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Origin and CSRF request validation for authentication endpoints",
   "type": "module",
   "sideEffects": false,

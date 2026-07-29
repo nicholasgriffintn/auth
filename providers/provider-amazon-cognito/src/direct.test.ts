@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  AuthError,
   createAuth,
   type AuthChallengeRecord,
   type AuthSessionRecord,
@@ -194,6 +195,46 @@ describe("Amazon Cognito direct authentication", () => {
     assert.equal(observedIdentity?.emailVerified, true);
     assert.equal(observedTokens?.refreshToken, "refresh-token");
     assert.equal(fixture.sessions.size, 1);
+
+    const accessWithoutIssuedAt = await signJwt(
+      {
+        sub: "cognito-subject",
+        iss: issuer,
+        exp: now.getTime() / 1000 + 3600,
+        client_id: clientId,
+        token_use: "access",
+      },
+      {
+        algorithm: "RS256",
+        key: keys.privateKey,
+        header: { kid: "key-1" },
+      }
+    );
+    const invalidFixture = createFixture(
+      async () =>
+        json({
+          AuthenticationResult: {
+            AccessToken: accessWithoutIssuedAt,
+            ExpiresIn: 3600,
+            TokenType: "Bearer",
+          },
+        }),
+      {
+        async jwks() {
+          return json({
+            keys: [{ ...jwk, kid: "key-1", alg: "RS256", use: "sig" }],
+          });
+        },
+      }
+    );
+    await assert.rejects(
+      invalidFixture.auth.providers["amazon-cognito"].signInPassword({
+        username: user.email,
+        password: "correct horse battery staple",
+      }),
+      (error) =>
+        error instanceof AuthError && error.code === "provider_error"
+    );
   });
 
   it("completes software-token setup with backend-only Cognito sessions", async () => {
@@ -228,6 +269,15 @@ describe("Amazon Cognito direct authentication", () => {
     if (initial.status !== "mfa_setup_required") {
       assert.fail("Expected MFA setup.");
     }
+    await assert.rejects(
+      fixture.auth.providers["amazon-cognito"].startMfaSetup({
+        token: initial.challenge.continuationToken,
+        accountName: user.email,
+        issuer: " ",
+      }),
+      (error) =>
+        error instanceof AuthError && error.code === "invalid_input"
+    );
     const setup = await fixture.auth.providers["amazon-cognito"].startMfaSetup({
       token: initial.challenge.continuationToken,
       accountName: user.email,
@@ -346,6 +396,55 @@ describe("Amazon Cognito direct authentication", () => {
       assert.equal(result.status, expectedStatus);
       assert.equal(JSON.stringify(result).includes("provider detail"), false);
     }
+  });
+
+  it("rejects malformed runtime inputs and provider token metadata", async () => {
+    let requests = 0;
+    const fixture = createFixture(async () => {
+      requests += 1;
+      return json({});
+    });
+    const provider = fixture.auth.providers["amazon-cognito"];
+
+    await assert.rejects(
+      Reflect.apply(provider.signInPassword, provider, [
+        {
+          username: 42,
+          password: "correct horse battery staple",
+        },
+      ]),
+      (error) =>
+        error instanceof AuthError && error.code === "invalid_input"
+    );
+    await assert.rejects(
+      Reflect.apply(provider.signUp, provider, [
+        {
+          username: user.email,
+          password: "correct horse battery staple",
+          attributes: { email: 42 },
+        },
+      ]),
+      (error) =>
+        error instanceof AuthError && error.code === "invalid_input"
+    );
+    assert.equal(requests, 0);
+
+    const invalidProvider = createFixture(async () =>
+      json({
+        AuthenticationResult: {
+          AccessToken: "not-reached",
+          ExpiresIn: "3600",
+        },
+      })
+    );
+    await assert.rejects(
+      invalidProvider.auth.providers["amazon-cognito"].signInPassword({
+        username: user.email,
+        password: "correct horse battery staple",
+      }),
+      (error) =>
+        error instanceof AuthError && error.code === "provider_error"
+    );
   });
 });
 

@@ -6,8 +6,14 @@ import {
   createScryptHasher,
 } from "./node.js";
 
+const [nodeMajor = 0, nodeMinor = 0] = process.versions.node
+  .split(".")
+  .map(Number);
+const supportsArgon2 =
+  nodeMajor > 24 || (nodeMajor === 24 && nodeMinor >= 7);
+
 describe("Node password hashing", () => {
-  it("hashes and verifies Argon2id", async () => {
+  it("hashes and verifies Argon2id", { skip: !supportsArgon2 }, async () => {
     const hasher = createArgon2idHasher();
     const hash = await hasher.hash("correct horse battery staple");
     assert.match(hash, /^\$argon2id\$/u);

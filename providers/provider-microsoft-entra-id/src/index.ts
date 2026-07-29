@@ -15,7 +15,6 @@ export function microsoftEntraIdDefinition(tenant: string) {
     tokenEndpoint: `https://login.microsoftonline.com/${validateSegment(tenant)}/oauth2/v2.0/token`,
     pkce: true,
     clientAuthentication: "basic",
-    tokenHeaders: {"Origin":"arctic"},
   });
 }
 

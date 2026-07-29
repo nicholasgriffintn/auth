@@ -4,6 +4,7 @@ import {
   useAuth,
 } from "./context.js";
 import { DynamicAuthForm } from "./dynamic-form.js";
+import { stringFormValues } from "./form-values.js";
 import type {
   AuthClientChallenge,
   AuthField,
@@ -202,8 +203,11 @@ export function ChallengeScreen() {
           <DynamicAuthForm
             config={config}
             fields={challengeFields(challenge, config.copy)}
+            key={challenge.continuationToken}
             onSubmit={(values) =>
-              continueChallenge(stringValues(values, ["confirmPassword"]))
+              continueChallenge(
+                stringFormValues(values, ["confirmPassword"])
+              )
             }
             submitLabel={
               challenge.kind === "password" ||
@@ -238,6 +242,9 @@ function ChallengeSelection({
   const { config, state, continueChallenge } = useAuth();
   const available = challenge.parameters?.["availableChallenges"];
   const choices = Array.isArray(available) ? available : [];
+  if (choices.length === 0) {
+    return <UnsupportedChallenge challenge={challenge} />;
+  }
   return (
     <div className={className(config, "actions")}>
       {choices.map((choice) => (
@@ -408,15 +415,4 @@ function challengeTitle(
     default:
       return copy.codeLabel;
   }
-}
-
-function stringValues(
-  values: Readonly<Record<string, string | boolean>>,
-  omitted: readonly string[]
-): Readonly<Record<string, string>> {
-  return Object.fromEntries(
-    Object.entries(values)
-      .filter(([key]) => !omitted.includes(key))
-      .map(([key, value]) => [key, String(value)])
-  );
 }

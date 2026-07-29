@@ -24,4 +24,6 @@ const auth = baseAuth.use(
 The service implements `WebAuthnStore`; `updateSignCount` must compare and
 update atomically. Registration accepts none or packed self-attestation and
 ES256 or RS256 credentials. Certificate attestation formats are rejected
-rather than trusted without a certificate policy.
+rather than trusted without a certificate policy. Authenticator extension data
+is validated as bounded CBOR, and backup eligibility cannot change after
+registration.

@@ -19,5 +19,6 @@ const auth = baseAuth.use(
 ```
 
 Implement `OtpStore` with atomic `advanceStep` and recovery-code consumption.
-Encrypt OTP secrets at rest. The setup result exposes the secret and URI once
-so the service can render a QR code.
+Persist `lastAcceptedStep` from `saveCredential` in the same write as the
+encrypted OTP secret. The setup result exposes the secret and URI once so the
+service can render a QR code.

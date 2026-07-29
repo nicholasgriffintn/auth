@@ -72,6 +72,14 @@ describe("WebAuthn middleware", () => {
     );
   });
 
+  it("rejects empty user IDs before storage work", async () => {
+    const fixture = await createFixture();
+    await assert.rejects(
+      fixture.auth.providers.webauthn.startAuthentication(""),
+      (error) => error instanceof AuthError && error.code === "invalid_input"
+    );
+  });
+
   it("registers an attested ES256 credential and authenticates it", async () => {
     const fixture = await createFixture();
     const registration = await fixture.auth.providers.webauthn.startRegistration({
@@ -96,7 +104,8 @@ describe("WebAuthn middleware", () => {
       await fixture.auth.providers.webauthn.startAuthentication(user.id);
     assert.equal(authentication.status, "webauthn_challenge_required");
     if (authentication.status !== "webauthn_challenge_required") return;
-    const credential = [...fixture.credentials.values()][0]!;
+    const credential = [...fixture.credentials.values()][0];
+    assert.ok(credential);
     const authenticated =
       await fixture.auth.providers.webauthn.finishAuthentication({
         token: authentication.challenge.continuationToken,
@@ -169,6 +178,110 @@ describe("WebAuthn middleware", () => {
           replay.challenge.continuationToken,
           1
         ),
+      }),
+      (error) =>
+        error instanceof AuthError && error.code === "invalid_credentials"
+    );
+  });
+
+  it("rejects a change to backup eligibility", async () => {
+    const fixture = await createFixture();
+    const registration =
+      await fixture.auth.providers.webauthn.startRegistration({
+        userId: user.id,
+        userName: user.email,
+        displayName: "Person",
+      });
+    if (registration.status !== "webauthn_challenge_required") {
+      assert.fail("Expected a registration challenge.");
+    }
+    await fixture.auth.providers.webauthn.finishRegistration({
+      token: registration.challenge.continuationToken,
+      response: await createRegistrationResponse(
+        fixture.keys,
+        registration.challenge.continuationToken,
+        ORIGIN,
+        0x49
+      ),
+    });
+    const authentication =
+      await fixture.auth.providers.webauthn.startAuthentication();
+    if (authentication.status !== "webauthn_challenge_required") {
+      assert.fail("Expected an authentication challenge.");
+    }
+    const credential = [...fixture.credentials.values()][0];
+    assert.ok(credential);
+
+    await assert.rejects(
+      fixture.auth.providers.webauthn.finishAuthentication({
+        token: authentication.challenge.continuationToken,
+        response: await createAuthenticationResponse(
+          fixture.keys.privateKey,
+          credential.id,
+          authentication.challenge.continuationToken,
+          1,
+          0x01
+        ),
+      }),
+      (error) =>
+        error instanceof AuthError && error.code === "invalid_credentials"
+    );
+  });
+
+  it("accepts registration extension data and rejects duplicate transports", async () => {
+    const extensionFixture = await createFixture();
+    const extensionRegistration =
+      await extensionFixture.auth.providers.webauthn.startRegistration({
+        userId: user.id,
+        userName: user.email,
+        displayName: "Person",
+      });
+    if (extensionRegistration.status !== "webauthn_challenge_required") {
+      assert.fail("Expected a registration challenge.");
+    }
+    const extensionResponse = await createRegistrationResponse(
+      extensionFixture.keys,
+      extensionRegistration.challenge.continuationToken,
+      ORIGIN,
+      0xc1,
+      new Map([["credProps", new Map([["rk", true]])]])
+    );
+    assert.equal(
+      (
+        await extensionFixture.auth.providers.webauthn.finishRegistration({
+          token: extensionRegistration.challenge.continuationToken,
+          response: extensionResponse,
+        })
+      ).status,
+      "authenticated"
+    );
+
+    const transportFixture = await createFixture();
+    const transportRegistration =
+      await transportFixture.auth.providers.webauthn.startRegistration({
+        userId: user.id,
+        userName: user.email,
+        displayName: "Person",
+      });
+    if (transportRegistration.status !== "webauthn_challenge_required") {
+      assert.fail("Expected a registration challenge.");
+    }
+    const validTransportResponse = await createRegistrationResponse(
+      transportFixture.keys,
+      transportRegistration.challenge.continuationToken
+    );
+    const duplicateTransports: readonly AuthenticatorTransport[] = [
+      "internal",
+      "internal",
+    ];
+    const transportResponse: WebAuthnRegistrationResponse = {
+      ...validTransportResponse,
+      transports: duplicateTransports,
+    };
+    await assert.rejects(
+      transportFixture.auth.providers.webauthn.finishRegistration({
+        token: transportRegistration.challenge.continuationToken,
+        response: transportResponse,
       }),
       (error) =>
         error instanceof AuthError && error.code === "invalid_credentials"
@@ -277,7 +390,9 @@ async function registerFixture(
 async function createRegistrationResponse(
   keys: CryptoKeyPair,
   challenge: string,
-  origin = ORIGIN
+  origin = ORIGIN,
+  flags = 0x41,
+  extensions?: ReadonlyMap<TestCborKey, TestCborValue>
 ): Promise<WebAuthnRegistrationResponse> {
   const publicJwk = await crypto.subtle.exportKey("jwk", keys.publicKey);
   if (!publicJwk.x || !publicJwk.y) {
@@ -295,12 +410,13 @@ async function createRegistrationResponse(
   );
   const authenticatorData = concat(
     await sha256(textEncoder.encode(RP_ID)),
-    Uint8Array.of(0x41),
+    Uint8Array.of(flags),
     uint32(0),
     new Uint8Array(16),
     uint16(credentialId.length),
     credentialId,
-    coseKey
+    coseKey,
+    ...(extensions ? [encodeCbor(extensions)] : [])
   );
   const attestationObject = encodeCbor(
     new Map<TestCborKey, TestCborValue>([
@@ -321,7 +437,8 @@ async function createAuthenticationResponse(
   privateKey: CryptoKey,
   credentialId: string,
   challenge: string,
-  signCount: number
+  signCount: number,
+  flags = 0x01
 ): Promise<WebAuthnAuthenticationResponse> {
   const clientDataJSON = createClientData(
     "webauthn.get",
@@ -331,7 +448,7 @@ async function createAuthenticationResponse(
   const clientBytes = decodeBase64Url(clientDataJSON);
   const authenticatorData = concat(
     await sha256(textEncoder.encode(RP_ID)),
-    Uint8Array.of(0x01),
+    Uint8Array.of(flags),
     uint32(signCount)
   );
   const rawSignature = new Uint8Array(
@@ -372,10 +489,14 @@ type TestCborKey = number | string;
 type TestCborValue =
   | number
   | string
+  | boolean
   | Uint8Array
   | ReadonlyMap<TestCborKey, TestCborValue>;
 
 function encodeCbor(value: TestCborValue): Uint8Array {
+  if (typeof value === "boolean") {
+    return Uint8Array.of(value ? 0xf5 : 0xf4);
+  }
   if (typeof value === "number") {
     return value >= 0
       ? encodeCborLength(0, value)

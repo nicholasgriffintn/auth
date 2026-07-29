@@ -12,7 +12,7 @@ export const gitHubDefinition = defineOAuthProvider({
     name: "github",
     authorizationEndpoint: "https://github.com/login/oauth/authorize",
     tokenEndpoint: "https://github.com/login/oauth/access_token",
-    pkce: false,
+    pkce: true,
     clientAuthentication: "basic",
 });
 

@@ -3,7 +3,11 @@ import { describe, it } from "node:test";
 
 import { AuthError, createAuth, type AuthUser } from "@ngriffin_uk/auth-core";
 
-import { passwordAuth, type PasswordAccount } from "./index.js";
+import {
+  passwordAuth,
+  type PasswordAccount,
+  type PasswordPolicy,
+} from "./index.js";
 
 interface TestUser extends AuthUser {
   readonly role: string;
@@ -14,6 +18,7 @@ function setup(
   capabilities: {
     readonly emailVerification?: boolean;
     readonly passwordReset?: boolean;
+    readonly policy?: PasswordPolicy;
   } = {}
 ) {
   const now = new Date("2026-01-01T00:00:00.000Z");
@@ -106,6 +111,7 @@ function setup(
     passwordAuth({
       store,
       hasher,
+      ...(capabilities.policy ? { policy: capabilities.policy } : {}),
       ...(capabilities.emailVerification
         ? {
             emailVerification: {
@@ -201,6 +207,43 @@ describe("passwordAuth", () => {
       );
     }
     assert.deepEqual(missing.hashCalls, ["incorrect password"]);
+  });
+
+  it("allows existing credentials that predate a stricter creation policy", async () => {
+    const user: TestUser = {
+      id: "user-1",
+      email: "person@example.com",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      role: "member",
+    };
+    const setupResult = setup(
+      {
+        user,
+        passwordHash: "hashed:legacy-password",
+        emailVerified: true,
+      },
+      {
+        policy: {
+          validate(password) {
+            return password.length >= 30 ? null : "Use at least 30 characters.";
+          },
+        },
+      }
+    );
+
+    const result = await setupResult.auth.providers.password.signIn({
+      email: user.email,
+      password: "legacy-password",
+    });
+    assert.equal(result.status, "authenticated");
+
+    await assert.rejects(
+      setupResult.auth.providers.password.signUp({
+        email: "new@example.com",
+        password: "legacy-password",
+      }),
+      (error) => error instanceof AuthError && error.code === "invalid_input"
+    );
   });
 
   it("rejects weak passwords before touching storage", async () => {

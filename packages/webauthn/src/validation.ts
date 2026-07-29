@@ -7,6 +7,7 @@ import {
   cborNumber,
   cborString,
   decodeCbor,
+  decodeFirstCbor,
   type CborValue,
 } from "./cbor.js";
 import { ecdsaDerToRaw } from "./der.js";
@@ -27,6 +28,8 @@ const USER_VERIFIED = 0x04;
 const BACKUP_ELIGIBLE = 0x08;
 const BACKED_UP = 0x10;
 const ATTESTED_CREDENTIAL_DATA = 0x40;
+const EXTENSION_DATA = 0x80;
+const RESERVED_FLAGS = 0x22;
 
 interface ValidationOptions {
   readonly challenge: string;
@@ -199,6 +202,9 @@ async function parseAuthenticatorData(
     throw new TypeError("Authenticator RP ID does not match.");
   }
   const flags = bytes[32]!;
+  if ((flags & RESERVED_FLAGS) !== 0) {
+    throw new TypeError("Authenticator data contains reserved flags.");
+  }
   if ((flags & USER_PRESENT) === 0) {
     throw new TypeError("Authenticator did not verify user presence.");
   }
@@ -219,6 +225,7 @@ async function parseAuthenticatorData(
   let credentialPublicKey: JsonWebKey | undefined;
   let algorithm: WebAuthnAlgorithm | undefined;
   let importedKey: CryptoKey | undefined;
+  let dataEnd = 37;
 
   if (registration) {
     if ((flags & ATTESTED_CREDENTIAL_DATA) === 0 || bytes.length < 56) {
@@ -235,14 +242,21 @@ async function parseAuthenticatorData(
       throw new TypeError("Attested credential ID is malformed.");
     }
     credentialId = bytes.slice(credentialStart, credentialEnd);
-    const cose = cborMap(
-      decodeCbor(bytes.slice(credentialEnd)),
-      "credentialPublicKey"
-    );
+    const decodedKey = decodeFirstCbor(bytes.slice(credentialEnd));
+    const cose = cborMap(decodedKey.value, "credentialPublicKey");
+    dataEnd = credentialEnd + decodedKey.bytesRead;
     const converted = coseKeyToJwk(cose);
     credentialPublicKey = converted.jwk;
     algorithm = converted.algorithm;
     importedKey = await importCredentialKey(credentialPublicKey, algorithm);
+  } else if ((flags & ATTESTED_CREDENTIAL_DATA) !== 0) {
+    throw new TypeError("Authentication data contains attested credentials.");
+  }
+
+  if ((flags & EXTENSION_DATA) !== 0) {
+    cborMap(decodeCbor(bytes.slice(dataEnd)), "authenticatorExtensions");
+  } else if (dataEnd !== bytes.length) {
+    throw new TypeError("Authenticator data contains trailing bytes.");
   }
 
   return {
@@ -288,9 +302,22 @@ function coseKeyToJwk(
     };
   }
   if (keyType === 3 && algorithm === -257) {
-    const modulus = cborBytes(cose.get(-1), "credentialPublicKey.n");
+    const encodedModulus = cborBytes(cose.get(-1), "credentialPublicKey.n");
+    let firstNonZero = 0;
+    while (
+      firstNonZero < encodedModulus.length &&
+      encodedModulus[firstNonZero] === 0
+    ) {
+      firstNonZero += 1;
+    }
+    const modulus = encodedModulus.slice(firstNonZero);
     const exponent = cborBytes(cose.get(-2), "credentialPublicKey.e");
-    if (modulus.length < 256 || exponent.length === 0) {
+    if (
+      modulus.length < 256 ||
+      (modulus.length === 256 && (modulus[0] ?? 0) < 0x80) ||
+      exponent.length === 0 ||
+      exponent.length > 8
+    ) {
       throw new TypeError("RSA credential key is too small or malformed.");
     }
     return {

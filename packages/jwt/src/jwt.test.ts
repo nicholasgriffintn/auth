@@ -16,6 +16,26 @@ async function createHmacKey(): Promise<CryptoKey> {
 }
 
 describe("JWT", () => {
+  it("rejects non-string tokens and invalid clocks as JWT errors", async () => {
+    assert.throws(
+      () => Reflect.apply(parseJwt, undefined, [42]),
+      (error) =>
+        error instanceof JwtError && error.code === "malformed_token"
+    );
+    const key = await createHmacKey();
+    const token = await signJwt({}, { algorithm: "HS256", key });
+    await assert.rejects(
+      verifyJwt(token, {
+        algorithms: ["HS256"],
+        key,
+        clock: () => new Date(Number.NaN),
+      }),
+      (error) =>
+        error instanceof JwtError &&
+        error.code === "claim_validation_failed"
+    );
+  });
+
   it("signs and validates allowed algorithms and claims", async () => {
     const key = await createHmacKey();
     const token = await signJwt(
@@ -93,6 +113,55 @@ describe("JWT", () => {
       (error) =>
         error instanceof JwtError &&
         error.code === "claim_validation_failed"
+    );
+  });
+
+  it("rejects keys whose cryptographic parameters disagree with alg", async () => {
+    const sha256Key = await createHmacKey();
+
+    await assert.rejects(
+      signJwt(
+        { sub: "user-1" },
+        { algorithm: "HS512", key: sha256Key }
+      ),
+      (error) =>
+        error instanceof JwtError && error.code === "invalid_key"
+    );
+
+    const validToken = await signJwt(
+      { sub: "user-1" },
+      { algorithm: "HS256", key: sha256Key }
+    );
+    const [encodedHeader, encodedClaims, encodedSignature] =
+      validToken.split(".");
+    assert.ok(encodedHeader && encodedClaims && encodedSignature);
+    const mismatchedHeader = Buffer.from(
+      JSON.stringify({ typ: "JWT", alg: "HS512" })
+    ).toString("base64url");
+
+    await assert.rejects(
+      verifyJwt(
+        `${mismatchedHeader}.${encodedClaims}.${encodedSignature}`,
+        { algorithms: ["HS512"], key: sha256Key }
+      ),
+      (error) =>
+        error instanceof JwtError && error.code === "invalid_key"
+    );
+  });
+
+  it("rejects unsupported critical JWS header parameters", async () => {
+    const key = await createHmacKey();
+    await assert.rejects(
+      signJwt(
+        { sub: "user-1" },
+        {
+          algorithm: "HS256",
+          key,
+          header: { crit: ["b64"], b64: false },
+        }
+      ),
+      (error) =>
+        error instanceof JwtError && error.code === "malformed_token"
     );
   });
 });

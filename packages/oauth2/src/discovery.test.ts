@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { AuthError } from "@ngriffin_uk/auth-core";
 
 import {
+  createOAuthProvider,
   createDiscoveredOidcProvider,
   defineOAuthProvider,
   discoverOpenIdConfiguration,
@@ -57,6 +58,29 @@ describe("OIDC discovery and provider definitions", () => {
         tokenEndpoint: "https://provider.example/token",
         pkce: true,
       })
+    );
+    assert.throws(() =>
+      createOAuthProvider(
+        {
+          name: "example",
+          authorizationEndpoint: "https://provider.example/authorize",
+          tokenEndpoint: "https://provider.example/token",
+          pkce: true,
+        },
+        {
+          clientId: "client-id",
+          stateTtlMs: 0,
+          stateStore: {
+            async create() {},
+            async consumeByStateHash() {
+              return null;
+            },
+          },
+          async resolveIdentity() {
+            throw new Error("not reached");
+          },
+        }
+      )
     );
   });
 

@@ -13,14 +13,21 @@ interface DecodeResult {
 }
 
 export function decodeCbor(input: Uint8Array): CborValue {
+  const decoded = decodeFirstCbor(input);
+  if (decoded.bytesRead !== input.length) {
+    throw new TypeError("CBOR input contains trailing data.");
+  }
+  return decoded.value;
+}
+
+export function decodeFirstCbor(
+  input: Uint8Array
+): { readonly value: CborValue; readonly bytesRead: number } {
   if (input.length === 0 || input.length > MAX_CBOR_BYTES) {
     throw new TypeError("CBOR input has an invalid size.");
   }
   const decoded = decodeItem(input, 0, 0);
-  if (decoded.offset !== input.length) {
-    throw new TypeError("CBOR input contains trailing data.");
-  }
-  return decoded.value;
+  return { value: decoded.value, bytesRead: decoded.offset };
 }
 
 function decodeItem(

@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-react",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Configurable unstyled React authentication components",
   "type": "module",
   "sideEffects": false,

@@ -4,6 +4,11 @@ import {
   type HmacAlgorithm,
 } from "@ngriffin_uk/auth-crypto";
 
+import {
+  isValidOtpCode,
+  validateOtpParameters,
+} from "./validation.js";
+
 const textEncoder = new TextEncoder();
 
 export interface HotpOptions {
@@ -16,7 +21,12 @@ export async function generateHotp(
   counter: bigint,
   options: HotpOptions = {}
 ): Promise<string> {
-  validateOptions(secret, counter, options.digits ?? 6);
+  validateOptions(
+    secret,
+    counter,
+    options.digits ?? 6,
+    options.algorithm ?? "SHA-1"
+  );
   const counterBytes = new Uint8Array(8);
   new DataView(counterBytes.buffer).setBigUint64(0, counter, false);
   const digest = await hmac(
@@ -44,6 +54,17 @@ export async function verifyHotp(
   if (!Number.isSafeInteger(lookAhead) || lookAhead < 0 || lookAhead > 100) {
     throw new TypeError("HOTP look-ahead must be between 0 and 100.");
   }
+  const digits = options.digits ?? 6;
+  validateOptions(
+    secret,
+    counter,
+    digits,
+    options.algorithm ?? "SHA-1"
+  );
+  if (counter + BigInt(lookAhead) > 0xffffffffffffffffn) {
+    throw new TypeError("HOTP look-ahead exceeds the 64-bit counter range.");
+  }
+  if (!isValidOtpCode(code, digits)) return { valid: false };
   for (let offset = 0; offset <= lookAhead; offset += 1) {
     const candidateCounter = counter + BigInt(offset);
     const expected = await generateHotp(secret, candidateCounter, options);
@@ -59,15 +80,15 @@ export async function verifyHotp(
 function validateOptions(
   secret: Uint8Array,
   counter: bigint,
-  digits: number
+  digits: number,
+  algorithm: HmacAlgorithm
 ): void {
-  if (secret.length < 16) {
-    throw new TypeError("OTP secrets must contain at least 128 bits.");
-  }
-  if (counter < 0n || counter > 0xffffffffffffffffn) {
+  validateOtpParameters(secret, digits, algorithm);
+  if (
+    typeof counter !== "bigint" ||
+    counter < 0n ||
+    counter > 0xffffffffffffffffn
+  ) {
     throw new TypeError("HOTP counter is outside the 64-bit range.");
-  }
-  if (!Number.isSafeInteger(digits) || digits < 6 || digits > 10) {
-    throw new TypeError("OTP digits must be between 6 and 10.");
   }
 }

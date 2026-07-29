@@ -25,10 +25,14 @@ export function encodeBase64Url(
 
 export function decodeBase64Url(value: string): Uint8Array {
   const unpadded = value.replace(/=+$/u, "");
+  const paddingLength = value.length - unpadded.length;
+  const expectedPadding = (4 - (unpadded.length % 4)) % 4;
   if (
     !BASE64URL_PATTERN.test(unpadded) ||
-    value.length - unpadded.length > 2 ||
-    unpadded.length % 4 === 1
+    paddingLength > 2 ||
+    unpadded.length % 4 === 1 ||
+    (paddingLength > 0 &&
+      (value.length % 4 !== 0 || paddingLength !== expectedPadding))
   ) {
     throw new TypeError("Invalid base64url string.");
   }
@@ -41,8 +45,8 @@ export function decodeBase64Url(value: string): Uint8Array {
 
 function bytesToBinary(bytes: Uint8Array): string {
   let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
+  for (let offset = 0; offset < bytes.length; offset += 8_192) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 8_192));
   }
   return binary;
 }

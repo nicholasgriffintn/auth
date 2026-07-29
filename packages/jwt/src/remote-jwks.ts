@@ -58,7 +58,7 @@ export function createRemoteJwksResolver(
   let lastRefreshAt = Number.NEGATIVE_INFINITY;
 
   async function load(force: boolean): Promise<CachedJwks> {
-    const now = clock().getTime();
+    const now = clockTime(clock);
     if (!force && cached && cached.expiresAt > now) {
       return cached;
     }
@@ -67,7 +67,7 @@ export function createRemoteJwksResolver(
     }
     inFlight = fetchJwks(request, url, maxResponseBytes, timeoutMs).then(
       ({ jwks, responseTtlMs }) => {
-        const loadedAt = clock().getTime();
+        const loadedAt = clockTime(clock);
         lastRefreshAt = loadedAt;
         const result = {
           expiresAt: loadedAt + Math.min(cacheTtlMs, responseTtlMs ?? cacheTtlMs),
@@ -92,7 +92,7 @@ export function createRemoteJwksResolver(
       const canRefresh =
         cause instanceof JwtError &&
         cause.code === "invalid_key" &&
-        clock().getTime() - lastRefreshAt >= minimumRefreshIntervalMs;
+        clockTime(clock) - lastRefreshAt >= minimumRefreshIntervalMs;
       if (!canRefresh) {
         throw cause;
       }
@@ -100,6 +100,15 @@ export function createRemoteJwksResolver(
       return refreshed.resolver(header);
     }
   };
+}
+
+function clockTime(clock: () => Date): number {
+  const value = clock();
+  const timestamp = value instanceof Date ? value.getTime() : Number.NaN;
+  if (!Number.isFinite(timestamp)) {
+    throw new JwtError("invalid_key", "JWKS clock is invalid.");
+  }
+  return timestamp;
 }
 
 async function fetchJwks(

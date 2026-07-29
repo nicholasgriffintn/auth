@@ -19,6 +19,26 @@ import {
   CognitoClient,
   CognitoServiceError,
 } from "./cognito-client.js";
+import {
+  hasRequiredTokenTimes,
+  isRecord,
+  MAX_PARAMETER_COUNT,
+  MAX_PARAMETER_LENGTH,
+  optionalAuthenticationResult,
+  optionalString,
+  optionalStringArray,
+  optionalStringMap,
+  payloadString,
+  requiredString,
+  validateCognitoStringMap,
+  validateCode,
+  validateConfig,
+  validateMfaSetupLabel,
+  validatePassword,
+  validateResponse,
+  validateToken,
+  validateUsername,
+} from "./direct-validation.js";
 import type {
   AmazonCognitoDirectOptions,
   CognitoAuthResponse,
@@ -30,9 +50,6 @@ import type {
 } from "./direct-types.js";
 
 const PROVIDER = "amazon-cognito";
-const MAX_PARAMETER_COUNT = 64;
-const MAX_PARAMETER_LENGTH = 131_072;
-
 interface DirectRuntime<User extends AuthUser> {
   readonly context: AuthPluginContext<User>;
   readonly config: AmazonCognitoDirectOptions<User>;
@@ -109,6 +126,8 @@ async function signUp<User extends AuthUser>(
 ): Promise<AuthFlowResult<User>> {
   validateUsername(input.username);
   validatePassword(input.password);
+  validateCognitoStringMap(input.attributes);
+  validateCognitoStringMap(input.clientMetadata);
   const secretHash = await runtime.client.secretHash(input.username);
   let value: Readonly<Record<string, unknown>>;
   try {
@@ -299,6 +318,7 @@ async function respondToNewPassword<User extends AuthUser>(
   }
 ): Promise<AuthFlowResult<User>> {
   validatePassword(input.newPassword);
+  validateCognitoStringMap(input.attributes);
   return respond(runtime, input.token, (challenge) => {
     if (challenge.challengeName !== "NEW_PASSWORD_REQUIRED") {
       throw new AuthError("challenge_mismatch");
@@ -402,6 +422,8 @@ async function startMfaSetup<User extends AuthUser>(
     readonly issuer: string;
   }
 ): Promise<AuthFlowResult<User>> {
+  validateMfaSetupLabel(input.issuer);
+  validateMfaSetupLabel(input.accountName);
   const record = await runtime.context.consumeChallenge(input.token, PROVIDER, [
     "mfa_setup",
   ]);
@@ -715,7 +737,13 @@ async function authenticate<User extends AuthUser>(
   fallbackRefreshToken?: string
 ): Promise<AuthFlowResult<User>> {
   const accessToken = result.AccessToken;
-  if (!accessToken) throw new AuthError("provider_error");
+  if (
+    !accessToken ||
+    (result.TokenType !== undefined &&
+      result.TokenType.toLowerCase() !== "bearer")
+  ) {
+    throw new AuthError("provider_error");
+  }
   let accessClaims: JwtClaims;
   let idClaims: JwtClaims | undefined;
   try {
@@ -728,7 +756,9 @@ async function authenticate<User extends AuthUser>(
     if (
       accessClaims["token_use"] !== "access" ||
       accessClaims["client_id"] !== runtime.config.clientId ||
-      typeof accessClaims.sub !== "string"
+      typeof accessClaims.sub !== "string" ||
+      accessClaims.sub.length === 0 ||
+      !hasRequiredTokenTimes(accessClaims)
     ) {
       throw new Error("Access-token claims are invalid.");
     }
@@ -741,7 +771,10 @@ async function authenticate<User extends AuthUser>(
         subject: accessClaims.sub,
         clock: runtime.context.now,
       });
-      if (idClaims["token_use"] !== "id") {
+      if (
+        idClaims["token_use"] !== "id" ||
+        !hasRequiredTokenTimes(idClaims)
+      ) {
         throw new Error("ID-token claims are invalid.");
       }
     }
@@ -907,22 +940,6 @@ function parseAuthResponse(
   };
 }
 
-function optionalAuthenticationResult(
-  value: unknown
-): CognitoAuthenticationResult | undefined {
-  if (value === undefined) return undefined;
-  if (!isRecord(value)) throw new AuthError("provider_error");
-  return {
-    ...withOptional("AccessToken", optionalString(value, "AccessToken")),
-    ...withOptional("IdToken", optionalString(value, "IdToken")),
-    ...withOptional("RefreshToken", optionalString(value, "RefreshToken")),
-    ...withOptional("TokenType", optionalString(value, "TokenType")),
-    ...(typeof value["ExpiresIn"] === "number"
-      ? { ExpiresIn: value["ExpiresIn"] }
-      : {}),
-  };
-}
-
 function publicParameters(
   challengeName: string,
   response: CognitoAuthResponse
@@ -986,7 +1003,8 @@ function deliveryParameters(
   return Object.fromEntries(
     ["AttributeName", "DeliveryMedium", "Destination"].flatMap((field) => {
       const item = details[field];
-      return typeof item === "string"
+      return typeof item === "string" &&
+        item.length <= MAX_PARAMETER_LENGTH
         ? [[field[0]!.toLowerCase() + field.slice(1), item]]
         : [];
     })
@@ -1004,7 +1022,7 @@ function storedChallenge(
 }
 
 function totpUri(issuer: string, accountName: string, secret: string): string {
-  if (!issuer || !accountName || !/^[A-Z2-7]+=*$/iu.test(secret)) {
+  if (!/^[A-Z2-7]+=*$/iu.test(secret)) {
     throw new AuthError("provider_error");
   }
   const url = new URL(
@@ -1019,6 +1037,8 @@ function withMetadata(
   base?: Readonly<Record<string, string>>,
   override?: Readonly<Record<string, string>>
 ): Readonly<Record<string, unknown>> {
+  validateCognitoStringMap(base);
+  validateCognitoStringMap(override);
   const metadata = { ...base, ...override };
   return Object.keys(metadata).length > 0
     ? { ClientMetadata: metadata }
@@ -1043,101 +1063,6 @@ function makeChallenge<Kind extends AuthChallengeKind>(
     expiresAt: issued.expiresAt,
     parameters,
   };
-}
-
-function optionalString(
-  value: Readonly<Record<string, unknown>>,
-  field: string
-): string | undefined {
-  const item = value[field];
-  if (item === undefined) return undefined;
-  if (typeof item !== "string") throw new AuthError("provider_error");
-  return item;
-}
-
-function requiredString(
-  value: Readonly<Record<string, unknown>>,
-  field: string
-): string {
-  const item = optionalString(value, field);
-  if (!item) throw new AuthError("provider_error");
-  return item;
-}
-
-function optionalStringMap(
-  value: unknown
-): Readonly<Record<string, string>> | undefined {
-  if (value === undefined) return undefined;
-  if (
-    !isRecord(value) ||
-    Object.values(value).some((item) => typeof item !== "string")
-  ) {
-    throw new AuthError("provider_error");
-  }
-  return Object.fromEntries(
-    Object.entries(value).map(([key, item]) => [key, String(item)])
-  );
-}
-
-function optionalStringArray(value: unknown): readonly string[] | undefined {
-  if (value === undefined) return undefined;
-  if (
-    !Array.isArray(value) ||
-    value.some((item) => typeof item !== "string")
-  ) {
-    throw new AuthError("provider_error");
-  }
-  return value;
-}
-
-function payloadString(
-  payload: Readonly<Record<string, unknown>>,
-  field: string
-): string {
-  const value = payload[field];
-  if (typeof value !== "string") throw new AuthError("challenge_mismatch");
-  return value;
-}
-
-function validateConfig<User extends AuthUser>(
-  config: AmazonCognitoDirectOptions<User>
-): void {
-  if (
-    !/^[a-z]{2}(?:-gov)?-[a-z]+-\d_[A-Za-z0-9]+$/u.test(config.userPoolId) ||
-    !config.userPoolId.startsWith(`${config.region}_`)
-  ) {
-    throw new TypeError("Amazon Cognito user-pool ID is invalid.");
-  }
-}
-
-function validateUsername(value: string): void {
-  if (!value || value.length > 128) {
-    throw new AuthError("invalid_input");
-  }
-}
-
-function validatePassword(value: string): void {
-  if (!value || value.length > 256) {
-    throw new AuthError("invalid_input");
-  }
-}
-
-function validateCode(value: string): void {
-  if (!/^[A-Za-z0-9-]{1,2048}$/u.test(value)) {
-    throw new AuthError("invalid_input");
-  }
-}
-
-function validateResponse(value: string): void {
-  if (!value || value.length > MAX_PARAMETER_LENGTH) {
-    throw new AuthError("invalid_input");
-  }
-}
-
-function validateToken(value: string): void {
-  if (!value || value.length > 131_072) {
-    throw new AuthError("invalid_input");
-  }
 }
 
 function mapServiceError(cause: unknown): AuthError {
@@ -1171,8 +1096,4 @@ function mapServiceError(cause: unknown): AuthError {
         retryable: true,
       });
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

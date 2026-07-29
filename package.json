@@ -5,6 +5,7 @@
   "description": "A reusable auth system for my applications",
   "packageManager": "pnpm@11.18.0",
   "scripts": {
+    "dev:website": "pnpm --filter @ngriffin_uk/auth-website dev",
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm build && pnpm -r --if-present test",

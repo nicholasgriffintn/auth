@@ -1,5 +1,6 @@
 import {
   AuthError,
+  requireValidDate,
   type AuthFlowResult,
   type AuthPlugin,
   type AuthPluginContext,
@@ -19,6 +20,7 @@ import {
 } from "./validation.js";
 
 const textEncoder = new TextEncoder();
+const MAX_CREDENTIALS_PER_USER = 100;
 
 export function webAuthn<User extends AuthUser>(
   config: WebAuthnPluginConfig
@@ -50,15 +52,15 @@ async function startRegistration<User extends AuthUser>(
     readonly displayName: string;
   }
 ): Promise<AuthFlowResult<User>> {
+  const userIdBytes = validateUserId(input.userId);
+  if (
+    !isValidDisplayName(input.userName) ||
+    !isValidDisplayName(input.displayName)
+  ) {
+    throw new AuthError("invalid_input", "WebAuthn user names are invalid.");
+  }
   const user = await context.users.findById(input.userId);
   if (!user) throw new AuthError("invalid_input");
-  const userIdBytes = textEncoder.encode(input.userId);
-  if (userIdBytes.length === 0 || userIdBytes.length > 64) {
-    throw new AuthError(
-      "invalid_input",
-      "The WebAuthn user ID must be between 1 and 64 bytes."
-    );
-  }
   const issued = await context.issueChallenge("webauthn", "webauthn", {
     ceremony: "registration",
     userId: input.userId,
@@ -89,6 +91,7 @@ async function finishRegistration<User extends AuthUser>(
   requireCeremony(challenge.payload, "registration");
   const userId = payloadString(challenge.payload, "userId");
   let parsed;
+  let transports: readonly AuthenticatorTransport[] | undefined;
   try {
     parsed = await validateRegistration(response, {
       challenge: token,
@@ -98,22 +101,37 @@ async function finishRegistration<User extends AuthUser>(
         ? {}
         : { requireUserVerification: config.requireUserVerification }),
     });
+    transports = validateTransports(response.transports);
   } catch (cause) {
     throw new AuthError("invalid_credentials", "The passkey registration is invalid.", {
       cause,
     });
   }
+  if (
+    !parsed.credentialId ||
+    !parsed.credentialPublicKey ||
+    !parsed.algorithm
+  ) {
+    throw new AuthError(
+      "invalid_credentials",
+      "The passkey registration is incomplete."
+    );
+  }
+  const timestamp = requireValidDate(
+    context.now(),
+    "WebAuthn clock"
+  );
   await config.store.saveCredential({
-    id: encodeBase64Url(parsed.credentialId!),
+    id: encodeBase64Url(parsed.credentialId),
     userId,
-    publicKeyJwk: parsed.credentialPublicKey!,
-    algorithm: parsed.algorithm!,
+    publicKeyJwk: parsed.credentialPublicKey,
+    algorithm: parsed.algorithm,
     signCount: parsed.signCount,
-    ...(response.transports ? { transports: response.transports } : {}),
+    ...(transports ? { transports } : {}),
     backupEligible: parsed.backupEligible,
     backedUp: parsed.backedUp,
-    createdAt: context.now(),
-    updatedAt: context.now(),
+    createdAt: timestamp,
+    updatedAt: timestamp,
   });
   return authenticated(context, userId);
 }
@@ -123,12 +141,38 @@ async function startAuthentication<User extends AuthUser>(
   config: WebAuthnPluginConfig,
   userId?: string
 ): Promise<AuthFlowResult<User>> {
-  if (userId && !(await context.users.findById(userId))) {
-    throw new AuthError("invalid_input");
+  if (userId !== undefined) {
+    validateUserId(userId);
+    if (!(await context.users.findById(userId))) {
+      throw new AuthError("invalid_input");
+    }
   }
   const credentials = userId
     ? await config.store.listCredentials(userId)
     : [];
+  if (credentials.length > MAX_CREDENTIALS_PER_USER) {
+    throw new AuthError(
+      "storage_error",
+      "Too many WebAuthn credentials are stored for this user."
+    );
+  }
+  const allowCredentialIds = credentials.map((credential) => {
+    if (credential.userId !== userId) {
+      throw new AuthError(
+        "storage_error",
+        "A WebAuthn credential is assigned to the wrong user."
+      );
+    }
+    try {
+      return canonicalCredentialId(credential.id);
+    } catch (cause) {
+      throw new AuthError(
+        "storage_error",
+        "A stored WebAuthn credential ID is invalid.",
+        { cause }
+      );
+    }
+  });
   const issued = await context.issueChallenge("webauthn", "webauthn", {
     ceremony: "authentication",
     ...(userId ? { userId } : {}),
@@ -139,10 +183,24 @@ async function startAuthentication<User extends AuthUser>(
     rpId: config.rpId,
     timeout: String(config.timeoutMs ?? 300_000),
     userVerification: config.requireUserVerification ? "required" : "preferred",
-    ...(credentials.length > 0
-      ? { allowCredentialIds: credentials.map((credential) => credential.id) }
+    ...(allowCredentialIds.length > 0
+      ? { allowCredentialIds }
       : {}),
   });
+}
+
+function validateUserId(value: string): Uint8Array {
+  if (typeof value !== "string") {
+    throw new AuthError("invalid_input", "The WebAuthn user ID is invalid.");
+  }
+  const bytes = textEncoder.encode(value);
+  if (bytes.length === 0 || bytes.length > 64) {
+    throw new AuthError(
+      "invalid_input",
+      "The WebAuthn user ID must be between 1 and 64 bytes."
+    );
+  }
+  return bytes;
 }
 
 async function finishAuthentication<User extends AuthUser>(
@@ -187,6 +245,12 @@ async function finishAuthentication<User extends AuthUser>(
   }
   const counterSupported =
     credential.signCount !== 0 || parsed.signCount !== 0;
+  if (parsed.backupEligible !== credential.backupEligible) {
+    throw new AuthError(
+      "invalid_credentials",
+      "The passkey backup eligibility changed."
+    );
+  }
   if (
     counterSupported &&
     parsed.signCount <= credential.signCount
@@ -237,10 +301,52 @@ async function authenticated<User extends AuthUser>(
 function validateConfig(config: WebAuthnPluginConfig): void {
   if (
     !isValidRpId(config.rpId) ||
+    !isValidDisplayName(config.rpName) ||
+    !Array.isArray(config.origins) ||
     config.origins.length === 0 ||
-    config.origins.some((origin) => !isValidOrigin(origin, config.rpId))
+    config.origins.length > 20 ||
+    config.origins.some((origin) => !isValidOrigin(origin, config.rpId)) ||
+    (config.timeoutMs !== undefined &&
+      (!Number.isSafeInteger(config.timeoutMs) ||
+        config.timeoutMs < 1 ||
+        config.timeoutMs > 600_000))
   ) {
-    throw new TypeError("WebAuthn RP ID and origins must be valid.");
+    throw new TypeError("WebAuthn configuration is invalid.");
+  }
+}
+
+function isValidDisplayName(value: string): boolean {
+  return (
+    typeof value === "string" &&
+    value.trim().length > 0 &&
+    textEncoder.encode(value).length <= 256
+  );
+}
+
+function validateTransports(
+  values: readonly AuthenticatorTransport[] | undefined
+): readonly AuthenticatorTransport[] | undefined {
+  if (values === undefined) return undefined;
+  if (!Array.isArray(values) || values.length > 6) {
+    throw new TypeError("WebAuthn transports are invalid.");
+  }
+  const transports = values.map(validateTransport);
+  if (new Set(transports).size !== transports.length) {
+    throw new TypeError("WebAuthn transports must be unique.");
+  }
+  return transports;
+}
+
+function validateTransport(value: unknown): AuthenticatorTransport {
+  switch (value) {
+    case "ble":
+    case "hybrid":
+    case "internal":
+    case "nfc":
+    case "usb":
+      return value;
+    default:
+      throw new TypeError("WebAuthn transport is invalid.");
   }
 }
 
@@ -257,7 +363,7 @@ function canonicalCredentialId(value: string): string {
 
 function constantUserHandle(encoded: string, userId: string): boolean {
   try {
-    if (encoded.length === 0 || encoded.length > 16_384) return false;
+    if (encoded.length === 0 || encoded.length > 128) return false;
     const actual = decodeBase64Url(encoded);
     const expected = textEncoder.encode(userId);
     if (actual.length !== expected.length) return false;

@@ -14,6 +14,16 @@
   "vars": {
     "SITE_ORIGIN": "https://auth.nicholasgriffin.dev"
   },
+  "secrets": {
+    "required": [
+      "GITHUB_CLIENT_ID",
+      "GITHUB_CLIENT_SECRET",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "DISCORD_CLIENT_ID",
+      "DISCORD_CLIENT_SECRET"
+    ]
+  },
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application",

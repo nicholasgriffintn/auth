@@ -32,7 +32,7 @@ export async function createDiscoveredOidcProvider<
   }
   const configuration = await discoverOpenIdConfiguration(issuer, {
     ...(options.fetch ? { fetch: options.fetch } : {}),
-    ...(options.discoveryTimeoutMs
+    ...(options.discoveryTimeoutMs !== undefined
       ? { timeoutMs: options.discoveryTimeoutMs }
       : {}),
   });
@@ -81,7 +81,9 @@ export async function createDiscoveredOidcProvider<
       key: createRemoteJwksResolver({
         url: configuration.jwksUri,
         ...(options.fetch ? { fetch: options.fetch } : {}),
-        ...(jwksCacheTtlMs ? { cacheTtlMs: jwksCacheTtlMs } : {}),
+        ...(jwksCacheTtlMs !== undefined
+          ? { cacheTtlMs: jwksCacheTtlMs }
+          : {}),
       }),
     },
   });

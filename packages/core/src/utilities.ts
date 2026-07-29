@@ -37,3 +37,19 @@ export async function hashSecret(secret: string): Promise<string> {
   );
   return encodeBase64Url(new Uint8Array(digest));
 }
+
+export function requireValidDate(value: Date, field: string): Date {
+  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) {
+    throw new AuthError("invalid_input", `${field} must be a valid date.`);
+  }
+  return value;
+}
+
+export function expirationDate(
+  createdAt: Date,
+  ttlMs: number,
+  field: string
+): Date {
+  const expiresAt = new Date(createdAt.getTime() + ttlMs);
+  return requireValidDate(expiresAt, field);
+}

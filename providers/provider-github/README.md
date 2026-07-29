@@ -14,5 +14,5 @@ const auth = baseAuth.use(
 );
 ```
 
-GitHub does not support PKCE for this endpoint, so state must be stored and
-consumed atomically.
+The provider uses PKCE S256 as well as single-use state. Store and consume
+OAuth state atomically.

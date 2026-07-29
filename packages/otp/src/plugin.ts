@@ -5,32 +5,38 @@ import {
   type AuthPluginContext,
   type AuthUser,
 } from "@ngriffin_uk/auth-core";
-import { randomBytes, sha256 } from "@ngriffin_uk/auth-crypto";
+import { randomBytes } from "@ngriffin_uk/auth-crypto";
 import {
   decodeBase64Url,
   encodeBase32,
   encodeBase64Url,
 } from "@ngriffin_uk/auth-encoding";
 
+import {
+  createRecoveryCodes,
+  hashRecoveryCode,
+  validateRecoveryCodeCount,
+} from "./recovery-code.js";
 import { verifyTotp } from "./totp.js";
 import type {
   OtpOperations,
   OtpPluginConfig,
 } from "./types.js";
 import { createTotpUri } from "./uri.js";
-
-const textEncoder = new TextEncoder();
+import { validateOtpParameters } from "./validation.js";
 
 export function otpAuth<User extends AuthUser>(
   config: OtpPluginConfig
 ): AuthPlugin<"otp", OtpOperations<User>, User> {
+  validateConfig(config);
   return {
     name: "otp",
     install(context) {
       return {
         startSetup: (input) => startSetup(context, config, input),
         verifySetup: (input) => verifySetup(context, config, input),
-        createChallenge: (userId) => createChallenge(context, userId),
+        createChallenge: (userId) =>
+          createChallenge(context, config, userId),
         verifyChallenge: (input) =>
           verifyChallenge(context, config, input),
         useRecoveryCode: (input) =>
@@ -45,6 +51,13 @@ async function startSetup<User extends AuthUser>(
   config: OtpPluginConfig,
   input: { readonly userId: string; readonly accountName: string }
 ): Promise<AuthFlowResult<User>> {
+  if (
+    typeof input.accountName !== "string" ||
+    !input.accountName.trim() ||
+    input.accountName.length > 320
+  ) {
+    throw new AuthError("invalid_input", "OTP account name is invalid.");
+  }
   const user = await context.users.findById(input.userId);
   if (!user) throw new AuthError("invalid_input");
   const secret = randomBytes(20);
@@ -100,19 +113,25 @@ async function verifySetup<User extends AuthUser>(
   await config.store.saveCredential({
     userId,
     secret,
+    lastAcceptedStep: verification.step,
     recoveryCodeHashes: payloadStrings(
       challenge.payload,
       "recoveryCodeHashes"
     ),
   });
-  await config.store.advanceStep(userId, verification.step);
   return authenticated(context, userId);
 }
 
 async function createChallenge<User extends AuthUser>(
   context: AuthPluginContext<User>,
+  config: OtpPluginConfig,
   userId: string
 ): Promise<AuthFlowResult<User>> {
+  const [user, credential] = await Promise.all([
+    context.users.findById(userId),
+    config.store.findCredential(userId),
+  ]);
+  if (!user || !credential) throw new AuthError("invalid_input");
   const issued = await context.issueChallenge(
     "otp",
     "software_token_mfa",
@@ -163,10 +182,12 @@ async function useRecoveryCode<User extends AuthUser>(
   input: { readonly token: string; readonly code: string }
 ): Promise<AuthFlowResult<User>> {
   const userId = await consumeUserChallenge(context, input.token);
+  const codeHash = await hashRecoveryCode(input.code);
   if (
+    !codeHash ||
     !(await config.store.consumeRecoveryCode(
       userId,
-      await hashRecoveryCode(input.code)
+      codeHash
     ))
   ) {
     throw new AuthError("invalid_credentials", "The recovery code is invalid.");
@@ -197,21 +218,6 @@ async function authenticated<User extends AuthUser>(
   };
 }
 
-function createRecoveryCodes(count: number): string[] {
-  if (!Number.isSafeInteger(count) || count < 1 || count > 50) {
-    throw new TypeError("Recovery code count must be between 1 and 50.");
-  }
-  return Array.from({ length: count }, () => {
-    const value = encodeBase32(randomBytes(10)).toLowerCase();
-    return `${value.slice(0, 4)}-${value.slice(4, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}`;
-  });
-}
-
-async function hashRecoveryCode(code: string): Promise<string> {
-  const normalised = code.toLowerCase().replaceAll("-", "").trim();
-  return encodeBase64Url(await sha256(textEncoder.encode(normalised)));
-}
-
 function decodeSecret(payload: Readonly<Record<string, unknown>>): Uint8Array {
   return decodeBase64Url(payloadString(payload, "secret"));
 }
@@ -223,6 +229,30 @@ function payloadString(
   const value = payload[field];
   if (typeof value !== "string") throw new AuthError("challenge_mismatch");
   return value;
+}
+
+function validateConfig(config: OtpPluginConfig): void {
+  if (
+    typeof config.issuer !== "string" ||
+    !config.issuer.trim() ||
+    config.issuer.length > 128
+  ) {
+    throw new TypeError("OTP issuer is invalid.");
+  }
+  validateRecoveryCodeCount(config.recoveryCodeCount ?? 10);
+  const options = config.options ?? {};
+  validateOtpParameters(
+    new Uint8Array(16),
+    options.digits ?? 6,
+    options.algorithm ?? "SHA-1"
+  );
+  if (
+    options.periodSeconds !== undefined &&
+    (!Number.isSafeInteger(options.periodSeconds) ||
+      options.periodSeconds < 1)
+  ) {
+    throw new TypeError("TOTP period must be a positive integer.");
+  }
 }
 
 function payloadStrings(

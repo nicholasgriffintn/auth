@@ -1,5 +1,7 @@
 import {
   AuthError,
+  expirationDate,
+  requireValidDate,
   type AuthPlugin,
   type AuthSession,
   type AuthUser,
@@ -9,6 +11,7 @@ import { encodeBase64Url } from "@ngriffin_uk/auth-encoding";
 import { verifyJwt, type JwtClaims } from "@ngriffin_uk/auth-jwt";
 import { requestWithTimeout } from "@ngriffin_uk/auth-request";
 
+import { encodeFormComponent } from "./encoding.js";
 import { readTokenResponse } from "./tokens.js";
 import type {
   OAuthOperations,
@@ -46,13 +49,18 @@ export function oauth2Auth<const Name extends string, User extends AuthUser>(
 
       return {
         async startAuthorization(options) {
-          const now = context.now();
+          const now = requireValidDate(
+            context.now(),
+            "OAuth clock"
+          );
           const state = context.randomToken();
           const codeVerifier =
             config.pkce === false ? undefined : context.randomToken();
           const nonce = config.oidc ? context.randomToken() : undefined;
-          const expiresAt = new Date(
-            now.getTime() + (config.stateTtlMs ?? 10 * 60 * 1_000)
+          const expiresAt = expirationDate(
+            now,
+            config.stateTtlMs ?? 10 * 60 * 1_000,
+            "OAuth state expiry"
           );
           const record: OAuthStateRecord = {
             stateHash: await context.hashSecret(state),
@@ -63,14 +71,15 @@ export function oauth2Auth<const Name extends string, User extends AuthUser>(
             createdAt: now,
             expiresAt,
           };
-          await config.stateStore.create(record);
-          return createAuthorizationUrl(
+          const url = await createAuthorizationUrl(
             config,
             state,
             codeVerifier,
             nonce,
             options
           );
+          await config.stateStore.create(record);
+          return url;
         },
 
         async completeAuthorization(input) {
@@ -223,7 +232,8 @@ async function consumeState<Name extends string, User extends AuthUser>(
     !Number.isFinite(record.expiresAt.getTime()) ||
     record.provider !== config.name ||
     record.redirectUri !== config.redirectUri ||
-    record.expiresAt.getTime() <= context.now().getTime()
+    record.expiresAt.getTime() <=
+      requireValidDate(context.now(), "OAuth clock").getTime()
   ) {
     throw new AuthError("invalid_callback");
   }
@@ -299,7 +309,7 @@ async function createTokenHeaders<
     const clientSecret = await resolveClientSecret(config.clientSecret);
     headers.set(
       "Authorization",
-      `Basic ${btoa(`${encodeURIComponent(config.clientId)}:${encodeURIComponent(clientSecret)}`)}`
+      `Basic ${btoa(`${encodeFormComponent(config.clientId)}:${encodeFormComponent(clientSecret)}`)}`
     );
   } else {
     body.set(config.clientIdParameter ?? "client_id", config.clientId);
@@ -338,15 +348,57 @@ async function validateIdToken<Name extends string, User extends AuthUser>(
 ): Promise<JwtClaims | null> {
   if (!config.oidc) return null;
   if (!tokens.idToken || !state.nonce) throw new AuthError("invalid_callback");
-  const claims = await verifyJwt(tokens.idToken, {
-    algorithms: config.oidc.algorithms,
-    key: config.oidc.key,
-    issuer: config.oidc.issuer,
-    audience: config.oidc.audience ?? config.clientId,
-    clock,
-  });
-  if (claims.nonce !== state.nonce) throw new AuthError("invalid_callback");
-  return claims;
+  try {
+    const claims = await verifyJwt(tokens.idToken, {
+      algorithms: config.oidc.algorithms,
+      key: config.oidc.key,
+      issuer: config.oidc.issuer,
+      audience: config.oidc.audience ?? config.clientId,
+      clock,
+    });
+    validateOidcClaims(claims, config.clientId);
+    if (claims.nonce !== state.nonce) {
+      throw new AuthError("invalid_callback");
+    }
+    return claims;
+  } catch (cause) {
+    if (cause instanceof AuthError) throw cause;
+    throw new AuthError("invalid_callback", "The ID token is invalid.", {
+      cause,
+    });
+  }
+}
+
+function validateOidcClaims(claims: JwtClaims, clientId: string): void {
+  const audiences =
+    typeof claims.aud === "string"
+      ? [claims.aud]
+      : Array.isArray(claims.aud) &&
+          claims.aud.every(
+            (value) => typeof value === "string" && value.length > 0
+          )
+        ? claims.aud
+        : null;
+  const validRequiredClaims =
+    typeof claims.sub === "string" &&
+    claims.sub.length > 0 &&
+    typeof claims.exp === "number" &&
+    Number.isFinite(claims.exp) &&
+    typeof claims.iat === "number" &&
+    Number.isFinite(claims.iat) &&
+    audiences !== null &&
+    audiences.length > 0;
+  const authorisedParty = claims.azp;
+  const validAuthorisedParty =
+    (audiences?.length ?? 0) <= 1 || typeof authorisedParty === "string";
+
+  if (
+    !validRequiredClaims ||
+    !validAuthorisedParty ||
+    (authorisedParty !== undefined && authorisedParty !== clientId)
+  ) {
+    throw new AuthError("invalid_callback", "The ID token claims are invalid.");
+  }
 }
 
 function validateConfig<Name extends string, User extends AuthUser>(

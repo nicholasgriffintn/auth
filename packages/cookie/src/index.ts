@@ -54,7 +54,7 @@ export function parseCookies(header: string): ReadonlyMap<string, string> {
     if (separator < 1) continue;
     const name = item.slice(0, separator).trim();
     const value = item.slice(separator + 1).trim();
-    if (!COOKIE_NAME_PATTERN.test(name)) continue;
+    if (!COOKIE_NAME_PATTERN.test(name) || cookies.has(name)) continue;
     try {
       cookies.set(name, decodeURIComponent(value));
     } catch {
@@ -114,6 +114,16 @@ function validateCookie(name: string, attributes: CookieAttributes): void {
   }
   if (attributes.partitioned && !attributes.secure) {
     throw new TypeError("Partitioned cookies must be Secure.");
+  }
+  if (
+    attributes.expires !== undefined &&
+    (!(attributes.expires instanceof Date) ||
+      !Number.isFinite(attributes.expires.getTime()))
+  ) {
+    throw new TypeError("Cookie Expires must be a valid date.");
+  }
+  if (name.startsWith("__Secure-") && !attributes.secure) {
+    throw new TypeError("__Secure- cookies require Secure.");
   }
   if (name.startsWith("__Host-")) {
     if (!attributes.secure || attributes.path !== "/" || attributes.domain) {

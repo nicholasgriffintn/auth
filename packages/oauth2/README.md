@@ -32,4 +32,6 @@ const middleware = createOAuthProvider(definition, {
 ```
 
 The service supplies a single-use `OAuthStateStore`, maps external profile data
-to `ExternalIdentity`, and persists refresh tokens itself when needed.
+to `ExternalIdentity`, and persists refresh tokens itself when needed. OIDC ID
+tokens must contain `sub`, `aud`, `exp`, and `iat`; multiple audiences also
+require an `azp` value matching the client ID.

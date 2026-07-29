@@ -13,7 +13,7 @@ import type {
   VerifyJwtOptions,
 } from "./types.js";
 
-const textDecoder = new TextDecoder();
+const textDecoder = new TextDecoder("utf-8", { fatal: true });
 const textEncoder = new TextEncoder();
 const MAX_JWT_LENGTH = 131_072;
 
@@ -21,6 +21,7 @@ export async function signJwt(
   claims: JwtClaims,
   options: SignJwtOptions
 ): Promise<string> {
+  validateSupportedHeader(options.header);
   const header = {
     typ: "JWT",
     ...options.header,
@@ -34,7 +35,11 @@ export async function signJwt(
 }
 
 export function parseJwt(token: string): ParsedJwt {
-  if (token.length === 0 || token.length > MAX_JWT_LENGTH) {
+  if (
+    typeof token !== "string" ||
+    token.length === 0 ||
+    token.length > MAX_JWT_LENGTH
+  ) {
     throw new JwtError("malformed_token", "JWT size is invalid.");
   }
   const parts = token.split(".");
@@ -95,6 +100,7 @@ export async function verifyJwt(
       "JWT algorithm is not allowed."
     );
   }
+  validateSupportedHeader(parsed.header);
 
   let key: CryptoKey;
   try {
@@ -123,11 +129,28 @@ export async function verifyJwt(
   return parsed.claims;
 }
 
+function validateSupportedHeader(
+  header: Readonly<Record<string, unknown>> | undefined
+): void {
+  if (
+    header?.["crit"] !== undefined ||
+    header?.["b64"] !== undefined
+  ) {
+    throw new JwtError(
+      "malformed_token",
+      "JWT uses unsupported critical header parameters."
+    );
+  }
+}
+
 function validateClaims(
   claims: JwtClaims,
   options: VerifyJwtOptions
 ): void {
-  const now = (options.clock?.() ?? new Date()).getTime() / 1_000;
+  const clockValue = options.clock?.() ?? new Date();
+  const now =
+    (clockValue instanceof Date ? clockValue.getTime() : Number.NaN) /
+    1_000;
   const tolerance = options.clockToleranceSeconds ?? 0;
   if (
     !Number.isFinite(now) ||

@@ -10,7 +10,11 @@ import type {
   PasswordPluginConfig,
   PasswordPolicy,
 } from "./types.js";
-import { validatePasswordInput } from "./validation.js";
+import {
+  validateCredentialInput,
+  validatePasswordInput,
+  normaliseEmailInput,
+} from "./validation.js";
 
 export interface PasswordRuntime<User extends AuthUser> {
   readonly context: AuthPluginContext<User>;
@@ -24,15 +28,12 @@ export async function signUp<User extends AuthUser>(
   input: PasswordInput
 ): Promise<AuthFlowResult<User>> {
   const startedAt = performance.now();
-  const email = runtime.normaliseEmail(input.email);
+  const email = normaliseEmailInput(input.email, runtime.normaliseEmail);
   validatePasswordInput({ ...input, email }, runtime.policy);
-  const existing = await runtime.config.store.findByEmail(email);
-  if (existing) {
-    report(runtime, "password.sign_up", "rejected", startedAt, "email_in_use");
-    throw new AuthError("email_in_use");
-  }
 
   try {
+    const existing = await runtime.config.store.findByEmail(email);
+    if (existing) throw new AuthError("email_in_use");
     const passwordHash = await runtime.config.hasher.hash(input.password);
     const user = await runtime.config.store.create({
       email,
@@ -48,7 +49,7 @@ export async function signUp<User extends AuthUser>(
     report(
       runtime,
       "password.sign_up",
-      "error",
+      cause instanceof AuthError ? "rejected" : "error",
       startedAt,
       cause instanceof AuthError ? cause.code : "storage_error"
     );
@@ -61,8 +62,8 @@ export async function signIn<User extends AuthUser>(
   input: PasswordInput
 ): Promise<AuthFlowResult<User>> {
   const startedAt = performance.now();
-  const email = runtime.normaliseEmail(input.email);
-  validatePasswordInput({ ...input, email }, runtime.policy);
+  const email = normaliseEmailInput(input.email, runtime.normaliseEmail);
+  validateCredentialInput({ ...input, email });
   try {
     const account = await runtime.config.store.findByEmail(email);
     if (!account) {
@@ -112,7 +113,7 @@ export async function resendVerification<User extends AuthUser>(
   emailInput: string
 ): Promise<void> {
   requireCapability(runtime.config.emailVerification);
-  const email = runtime.normaliseEmail(emailInput);
+  const email = normaliseEmailInput(emailInput, runtime.normaliseEmail);
   const account = await runtime.config.store.findByEmail(email);
   if (!account || account.emailVerified) return;
   await issueEmailVerification(runtime, account.user);
@@ -123,7 +124,7 @@ export async function requestPasswordReset<User extends AuthUser>(
   emailInput: string
 ): Promise<void> {
   const capability = requireCapability(runtime.config.passwordReset);
-  const email = runtime.normaliseEmail(emailInput);
+  const email = normaliseEmailInput(emailInput, runtime.normaliseEmail);
   const account = await runtime.config.store.findByEmail(email);
   if (!account) {
     await runtime.config.hasher.hash("password-reset-timing-padding");
@@ -170,6 +171,10 @@ export async function changePassword<User extends AuthUser>(
     readonly newPassword: string;
   }
 ): Promise<void> {
+  validateCredentialInput({
+    email: "credential@example.invalid",
+    password: input.currentPassword,
+  });
   const account = await runtime.config.store.findByUserId(input.userId);
   if (
     !account ||

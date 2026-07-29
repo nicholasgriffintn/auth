@@ -33,6 +33,10 @@ interface StateRow extends Record<string, SqlStorageValue> {
   readonly expires_at: number;
 }
 
+const CLEANUP_INTERVAL_MS = 60_000;
+const MAX_IDENTITY_CLAIMS_LENGTH = 64 * 1_024;
+const textEncoder = new TextEncoder();
+
 const schema = `
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
@@ -72,6 +76,8 @@ const schema = `
 `;
 
 export class AuthStore extends DurableObject<Env> {
+  #nextCleanupAt = 0;
+
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
     this.ctx.storage.sql.exec(schema);
@@ -119,7 +125,7 @@ export class AuthStore extends DurableObject<Env> {
       "login",
       "username",
     ]) ?? `${identity.provider} user`;
-    const avatarUrl = profileString(identity.claims, [
+    const avatarUrl = profileUrl(identity.claims, [
       "avatar_url",
       "picture",
       "avatarUrl",
@@ -127,6 +133,14 @@ export class AuthStore extends DurableObject<Env> {
     const email =
       identity.email ??
       `${identity.providerSubject}@${identity.provider}.invalid`;
+
+    const claimsJson = JSON.stringify(identity.claims);
+    if (
+      textEncoder.encode(claimsJson).length >
+      MAX_IDENTITY_CLAIMS_LENGTH
+    ) {
+      throw new TypeError("Identity claims are too large.");
+    }
 
     this.ctx.storage.sql.exec(
       `INSERT INTO users
@@ -150,7 +164,7 @@ export class AuthStore extends DurableObject<Env> {
       identity.emailVerified === undefined
         ? null
         : Number(identity.emailVerified),
-      JSON.stringify(identity.claims),
+      claimsJson,
     );
 
     return {
@@ -242,6 +256,8 @@ export class AuthStore extends DurableObject<Env> {
 
   private deleteExpired(): void {
     const now = Date.now();
+    if (now < this.#nextCleanupAt) return;
+    this.#nextCleanupAt = now + CLEANUP_INTERVAL_MS;
     this.ctx.storage.sql.exec(
       "DELETE FROM sessions WHERE expires_at <= ?",
       now,
@@ -278,4 +294,20 @@ function profileString(
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return undefined;
+}
+
+function profileUrl(
+  claims: Readonly<Record<string, unknown>>,
+  keys: readonly string[],
+): string | undefined {
+  const value = profileString(claims, keys);
+  if (!value || value.length > 2_048) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password
+      ? url.href
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }

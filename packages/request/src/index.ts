@@ -53,7 +53,9 @@ export async function requestWithTimeout(
   try {
     return await request(input, {
       ...init,
-      signal: controller.signal,
+      signal: init.signal
+        ? AbortSignal.any([init.signal, controller.signal])
+        : controller.signal,
     });
   } finally {
     clearTimeout(timeout);

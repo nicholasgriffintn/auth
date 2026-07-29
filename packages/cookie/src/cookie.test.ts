@@ -26,6 +26,10 @@ describe("cookie primitives", () => {
         ["second", "value"],
       ]
     );
+    assert.equal(
+      parseCookies("session=host-value; session=domain-value").get("session"),
+      "host-value"
+    );
   });
 
   it("creates an immediately expired cookie", () => {
@@ -44,6 +48,14 @@ describe("cookie primitives", () => {
         path: "/",
         secure: true,
         domain: "example.com",
+      })
+    );
+    assert.throws(() =>
+      serializeCookie("__Secure-session", "value")
+    );
+    assert.throws(() =>
+      serializeCookie("session", "value", {
+        expires: new Date(Number.NaN),
       })
     );
   });

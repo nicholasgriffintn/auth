@@ -25,7 +25,15 @@ export function encodeBase32(bytes: Uint8Array, padding = false): string {
 export function decodeBase32(value: string): Uint8Array {
   const unpadded = value.toUpperCase().replace(/=+$/u, "");
   const paddingLength = value.length - unpadded.length;
-  if (paddingLength > 6 || unpadded.includes("=")) {
+  const remainder = unpadded.length % 8;
+  const expectedPadding = (8 - remainder) % 8;
+  if (
+    paddingLength > 6 ||
+    unpadded.includes("=") ||
+    ![0, 2, 4, 5, 7].includes(remainder) ||
+    (paddingLength > 0 &&
+      (value.length % 8 !== 0 || paddingLength !== expectedPadding))
+  ) {
     throw new TypeError("Invalid base32 string.");
   }
 

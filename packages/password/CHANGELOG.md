@@ -1,5 +1,14 @@
 # @ngriffin_uk/auth-password
 
+## 1.0.2
+
+### Patch Changes
+
+- chore: hardening tweaks
+- Updated dependencies
+  - @ngriffin_uk/auth-password-hash@0.2.2
+  - @ngriffin_uk/auth-core@0.2.3
+
 ## 1.0.1
 
 ### Patch Changes

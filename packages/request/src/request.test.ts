@@ -80,4 +80,25 @@ describe("outbound response limits", () => {
       (error) => error instanceof DOMException && error.name === "AbortError"
     );
   });
+
+  it("preserves caller cancellation while applying a timeout", async () => {
+    const controller = new AbortController();
+    const request: typeof fetch = async (_input, init) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () =>
+          reject(new DOMException("Aborted", "AbortError"))
+        );
+        controller.abort();
+      });
+
+    await assert.rejects(
+      requestWithTimeout(
+        request,
+        "https://example.com",
+        { signal: controller.signal },
+        10_000
+      ),
+      (error) => error instanceof DOMException && error.name === "AbortError"
+    );
+  });
 });

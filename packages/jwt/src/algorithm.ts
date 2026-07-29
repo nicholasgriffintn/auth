@@ -10,6 +10,7 @@ import {
   type Sha2Algorithm,
 } from "@ngriffin_uk/auth-crypto";
 
+import { JwtError } from "./error.js";
 import type { JwtAlgorithm } from "./types.js";
 
 const textEncoder = new TextEncoder();
@@ -23,6 +24,7 @@ export function sign(
   key: CryptoKey,
   data: Uint8Array
 ): Promise<Uint8Array> {
+  assertKeyMatchesAlgorithm(algorithm, key);
   const hash = getHash(algorithm);
   if (algorithm.startsWith("HS")) return signHmac(hash, key, data);
   if (algorithm.startsWith("RS")) return signRsaPkcs1(key, data);
@@ -38,6 +40,7 @@ export function verify(
   signature: Uint8Array,
   data: Uint8Array
 ): Promise<boolean> {
+  assertKeyMatchesAlgorithm(algorithm, key);
   const hash = getHash(algorithm);
   if (algorithm.startsWith("HS")) {
     return verifyHmac(hash, key, signature, data);
@@ -115,4 +118,50 @@ function getCurve(algorithm: JwtAlgorithm): "P-256" | "P-384" | "P-521" {
   if (algorithm === "ES256") return "P-256";
   if (algorithm === "ES384") return "P-384";
   return "P-521";
+}
+
+function assertKeyMatchesAlgorithm(
+  algorithm: JwtAlgorithm,
+  key: CryptoKey
+): void {
+  const expectedName = algorithm.startsWith("HS")
+    ? "HMAC"
+    : algorithm.startsWith("RS")
+      ? "RSASSA-PKCS1-v1_5"
+      : algorithm.startsWith("PS")
+        ? "RSA-PSS"
+        : "ECDSA";
+  const keyAlgorithm = key.algorithm;
+  const hash = readNestedName(keyAlgorithm, "hash");
+  const curve = readString(keyAlgorithm, "namedCurve");
+  const valid =
+    keyAlgorithm.name === expectedName &&
+    (algorithm.startsWith("ES")
+      ? curve === getCurve(algorithm)
+      : hash === getHash(algorithm));
+
+  if (!valid) {
+    throw new JwtError(
+      "invalid_key",
+      `JWT key parameters do not match ${algorithm}.`
+    );
+  }
+}
+
+function readNestedName(
+  value: object,
+  property: string
+): string | undefined {
+  const nested = Reflect.get(value, property);
+  return typeof nested === "object" && nested !== null
+    ? readString(nested, "name")
+    : undefined;
+}
+
+function readString(
+  value: object,
+  property: string
+): string | undefined {
+  const result = Reflect.get(value, property);
+  return typeof result === "string" ? result : undefined;
 }

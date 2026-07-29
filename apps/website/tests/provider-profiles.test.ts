@@ -57,6 +57,31 @@ test("Google identity resolution rejects a response without a subject", async ()
   );
 });
 
+test("provider identifiers and persisted claim strings are bounded", async () => {
+  const oversizedSubjectRequest: typeof fetch = async () =>
+    Response.json({ sub: "x".repeat(257) });
+  await assert.rejects(
+    resolveProviderIdentity("google", tokens, oversizedSubjectRequest),
+    (error) => error instanceof AuthError && error.code === "provider_error",
+  );
+
+  const boundedClaimsRequest: typeof fetch = async () =>
+    Response.json({
+      sub: "subject-1",
+      name: "x".repeat(2_049),
+      picture: "https://example.com/avatar.png",
+    });
+  const identity = await resolveProviderIdentity(
+    "google",
+    tokens,
+    boundedClaimsRequest,
+  );
+  assert.deepEqual(identity.claims, {
+    sub: "subject-1",
+    picture: "https://example.com/avatar.png",
+  });
+});
+
 test("Discord identity resolution derives a displayable avatar URL", async () => {
   const request: typeof fetch = async () =>
     Response.json({

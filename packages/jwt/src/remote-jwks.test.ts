@@ -65,4 +65,23 @@ describe("remote JWKS", () => {
         error instanceof JwtError && error.code === "invalid_key"
     );
   });
+
+  it("rejects invalid cache clocks before making a request", async () => {
+    let requested = false;
+    const resolver = createRemoteJwksResolver({
+      url: "https://issuer.example/jwks",
+      clock: () => new Date(Number.NaN),
+      fetch: async () => {
+        requested = true;
+        return new Response("{}");
+      },
+    });
+
+    await assert.rejects(
+      async () => resolver({ alg: "RS256", kid: "key-1" }),
+      (error: unknown) =>
+        error instanceof JwtError && error.code === "invalid_key"
+    );
+    assert.equal(requested, false);
+  });
 });

@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-oauth2",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Runtime-neutral OAuth 2.0 and OpenID Connect authentication plugin",
   "type": "module",
   "sideEffects": false,
@@ -21,11 +21,11 @@
     "test": "tsc -p tsconfig.test.json && node --test .test-dist/**/*.test.js"
   },
   "peerDependencies": {
-    "@ngriffin_uk/auth-core": "^0.2.2",
+    "@ngriffin_uk/auth-core": "^0.2.3",
     "@ngriffin_uk/auth-crypto": "^1.0.1",
-    "@ngriffin_uk/auth-encoding": "^0.2.1",
-    "@ngriffin_uk/auth-jwt": "^1.0.1",
-    "@ngriffin_uk/auth-request": "^0.2.1"
+    "@ngriffin_uk/auth-encoding": "^0.2.2",
+    "@ngriffin_uk/auth-jwt": "^1.0.2",
+    "@ngriffin_uk/auth-request": "^0.2.2"
   },
   "devDependencies": {
     "@ngriffin_uk/auth-core": "workspace:*",

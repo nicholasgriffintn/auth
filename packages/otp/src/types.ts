@@ -11,6 +11,7 @@ export interface OtpStore {
   saveCredential(input: {
     readonly userId: string;
     readonly secret: Uint8Array;
+    readonly lastAcceptedStep: bigint;
     readonly recoveryCodeHashes: readonly string[];
   }): Promise<void>;
   findCredential(userId: string): Promise<OtpCredential | null>;

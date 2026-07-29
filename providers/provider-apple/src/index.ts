@@ -29,12 +29,18 @@ export interface AppleOptions<User extends AuthUser>
 export function createAppleAuth<User extends AuthUser>(
   options: AppleOptions<User>
 ): AuthPlugin<"apple", OAuthOperations<User>, User> {
+  validateIdentifier(options.teamId, "Apple team ID");
+  validateIdentifier(options.keyId, "Apple key ID");
   const { teamId, keyId, privateKey, clock, ...oauthOptions } = options;
   return createOAuthProvider(appleDefinition, {
     ...oauthOptions,
     clientAuthentication: "body",
     clientSecret: async () => {
-      const issuedAt = Math.floor((clock?.() ?? new Date()).getTime() / 1_000);
+      const timestamp = (clock?.() ?? new Date()).getTime();
+      if (!Number.isFinite(timestamp)) {
+        throw new TypeError("Apple client-secret clock is invalid.");
+      }
+      const issuedAt = Math.floor(timestamp / 1_000);
       return signJwt(
         {
           iss: teamId,
@@ -51,6 +57,17 @@ export function createAppleAuth<User extends AuthUser>(
       );
     },
   });
+}
+
+function validateIdentifier(value: string, label: string): void {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > 128 ||
+    !/^[A-Za-z0-9._-]+$/u.test(value)
+  ) {
+    throw new TypeError(`${label} is invalid.`);
+  }
 }
 
 export function importApplePrivateKey(pkcs8: Uint8Array): Promise<CryptoKey> {

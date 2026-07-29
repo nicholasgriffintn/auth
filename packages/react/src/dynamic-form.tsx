@@ -5,6 +5,10 @@ import {
 } from "react";
 
 import { className } from "./config.js";
+import {
+  initialFormValues,
+  selectFormValues,
+} from "./form-values.js";
 import type {
   AuthField,
   ResolvedAuthUiConfig,
@@ -27,28 +31,27 @@ export function DynamicAuthForm({
 }) {
   const formId = useId();
   const [values, setValues] = useState<Record<string, string | boolean>>(() =>
-    Object.fromEntries(
-      fields.map((field) => [field.name, field.initialValue ?? ""])
-    )
+    initialFormValues(fields)
   );
   const [validationError, setValidationError] = useState<string>();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const submittedValues = selectFormValues(fields, values);
     for (const field of fields) {
-      const value = values[field.name] ?? "";
+      const value = submittedValues[field.name] ?? "";
       if (field.required && (value === "" || value === false)) {
         setValidationError(`${field.label} is required.`);
         return;
       }
-      const error = field.validate?.(value, values);
+      const error = field.validate?.(value, submittedValues);
       if (error) {
         setValidationError(error);
         return;
       }
     }
     setValidationError(undefined);
-    await onSubmit(values);
+    await onSubmit(submittedValues);
   }
 
   return (
@@ -56,7 +59,6 @@ export function DynamicAuthForm({
       className={className(config, "form")}
       data-auth-form=""
       onSubmit={handleSubmit}
-      noValidate
     >
       {fields.map((field, index) => {
         const id = `${formId}-${field.name}`;

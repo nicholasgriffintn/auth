@@ -10,10 +10,12 @@ import {
 
 import {
   oauth2Auth,
+  type OidcConfig,
   type OAuthStateRecord,
   type OAuthStateStore,
   type OAuthTokenSet,
 } from "./index.js";
+import { signJwt } from "@ngriffin_uk/auth-jwt";
 
 interface TestUser extends AuthUser {
   readonly role: string;
@@ -23,7 +25,10 @@ interface SetupOptions {
   readonly clientAuthentication?: "basic" | "body" | "none";
   readonly clientIdParameter?: string;
   readonly pkce?: boolean;
-  readonly responseBody?: unknown;
+  readonly clientId?: string;
+  readonly clientSecret?: string;
+  readonly oidc?: OidcConfig;
+  readonly responseBody?: unknown | (() => unknown | Promise<unknown>);
   readonly scopeSeparator?: " " | ",";
   readonly scopes?: readonly string[];
   readonly tokenParameters?: {
@@ -60,12 +65,14 @@ function setup(options: SetupOptions = {}) {
     tokenRequestInit = init;
     return new Response(
       JSON.stringify(
-        options.responseBody ?? {
-          access_token: "access-token",
-          token_type: "Bearer",
-          expires_in: 3600,
-          scope: "openid email",
-        }
+        typeof options.responseBody === "function"
+          ? await options.responseBody()
+          : options.responseBody ?? {
+              access_token: "access-token",
+              token_type: "Bearer",
+              expires_in: 3600,
+              scope: "openid email",
+            }
       ),
       {
         status: 200,
@@ -105,8 +112,8 @@ function setup(options: SetupOptions = {}) {
   }).use(
     oauth2Auth({
       name: "github",
-      clientId: "client-id",
-      clientSecret: "client-secret",
+      clientId: options.clientId ?? "client-id",
+      clientSecret: options.clientSecret ?? "client-secret",
       redirectUri: "https://app.example/callback",
       authorizationEndpoint: "https://github.example/authorize",
       tokenEndpoint: "https://github.example/token",
@@ -129,6 +136,7 @@ function setup(options: SetupOptions = {}) {
         : {}),
       stateStore,
       fetch: request,
+      ...(options.oidc ? { oidc: options.oidc } : {}),
       async resolveIdentity(tokens) {
         resolvedTokens = tokens;
         return {
@@ -271,6 +279,116 @@ describe("oauth2Auth", () => {
       () => setupResult.auth.providers.github.refresh(""),
       (error) =>
         error instanceof AuthError && error.code === "invalid_input"
+    );
+  });
+
+  it("uses form encoding for HTTP Basic client credentials", async () => {
+    const setupResult = setup({
+      clientId: "client id",
+      clientSecret: "s:e!",
+    });
+    const url = await setupResult.auth.providers.github.startAuthorization();
+    const state = url.searchParams.get("state");
+    assert.ok(state);
+
+    await setupResult.auth.providers.github.completeAuthorization({
+      code: "authorization-code",
+      state,
+    });
+
+    assert.equal(
+      new Headers(setupResult.getTokenRequestInit()?.headers).get(
+        "Authorization"
+      ),
+      `Basic ${Buffer.from("client+id:s%3Ae%21").toString("base64")}`
+    );
+  });
+
+  it("does not persist state when authorization options are invalid", async () => {
+    const setupResult = setup();
+
+    await assert.rejects(
+      setupResult.auth.providers.github.startAuthorization({
+        authorizationParameters: { state: "attacker-controlled" },
+      }),
+      (error) =>
+        error instanceof AuthError && error.code === "invalid_input"
+    );
+    assert.equal(setupResult.states.size, 0);
+  });
+
+  it("requires OIDC claims and azp for multiple audiences", async () => {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode("a sufficiently long test secret"),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign", "verify"]
+    );
+    let idToken = "";
+    const setupResult = setup({
+      oidc: {
+        issuer: "https://issuer.example",
+        algorithms: ["HS256"],
+        key,
+      },
+      responseBody: () => ({
+        access_token: "access-token",
+        token_type: "Bearer",
+        id_token: idToken,
+      }),
+    });
+    const url = await setupResult.auth.providers.github.startAuthorization();
+    const state = url.searchParams.get("state");
+    const nonce = [...setupResult.states.values()][0]?.nonce;
+    assert.ok(state && nonce);
+
+    idToken = await signJwt(
+      {
+        iss: "https://issuer.example",
+        aud: ["client-id", "another-client"],
+        sub: "external-1",
+        exp: 1_767_225_900,
+        iat: 1_767_225_600,
+        nonce,
+      },
+      { algorithm: "HS256", key }
+    );
+
+    await assert.rejects(
+      setupResult.auth.providers.github.completeAuthorization({
+        code: "authorization-code",
+        state,
+      }),
+      (error) =>
+        error instanceof AuthError && error.code === "invalid_callback"
+    );
+
+    const validUrl =
+      await setupResult.auth.providers.github.startAuthorization();
+    const validState = validUrl.searchParams.get("state");
+    const validNonce = [...setupResult.states.values()][0]?.nonce;
+    assert.ok(validState && validNonce);
+    idToken = await signJwt(
+      {
+        iss: "https://issuer.example",
+        aud: ["client-id", "another-client"],
+        azp: "client-id",
+        sub: "external-1",
+        exp: 1_767_225_900,
+        iat: 1_767_225_600,
+        nonce: validNonce,
+      },
+      { algorithm: "HS256", key }
+    );
+    assert.equal(
+      (
+        await setupResult.auth.providers.github.completeAuthorization({
+          code: "authorization-code",
+          state: validState,
+        })
+      ).status,
+      "authenticated"
     );
   });
 });

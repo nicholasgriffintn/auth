@@ -12,7 +12,9 @@ import { decodeBase32 } from "@ngriffin_uk/auth-encoding";
 
 import {
   generateHotp,
+  getTotpStep,
   generateTotp,
+  createTotpUri,
   otpAuth,
   verifyTotp,
   type OtpCredential,
@@ -21,6 +23,43 @@ import {
 const textEncoder = new TextEncoder();
 
 describe("OTP primitives", () => {
+  it("rejects unsafe plugin configuration before installation", () => {
+    const store = {
+      async saveCredential() {},
+      async findCredential() {
+        return null;
+      },
+      async advanceStep() {
+        return false;
+      },
+      async consumeRecoveryCode() {
+        return false;
+      },
+    };
+    assert.throws(
+      () => otpAuth({ issuer: "", store }),
+      /issuer/u
+    );
+    assert.throws(
+      () =>
+        otpAuth({
+          issuer: "Example",
+          store,
+          options: { digits: 5 },
+        }),
+      /digits/u
+    );
+    assert.throws(
+      () =>
+        otpAuth({
+          issuer: "Example",
+          store,
+          options: { periodSeconds: 0 },
+        }),
+      /period/u
+    );
+  });
+
   it("matches RFC 4226 HOTP vectors", async () => {
     const secret = textEncoder.encode("12345678901234567890");
     const expected = [
@@ -64,6 +103,33 @@ describe("OTP primitives", () => {
         })
       ).valid,
       false
+    );
+  });
+
+  it("rejects malformed codes and dates before cryptographic work", async () => {
+    const secret = textEncoder.encode("12345678901234567890");
+    assert.deepEqual(
+      await verifyTotp("9".repeat(1_000_000), secret, new Date(59_000)),
+      { valid: false }
+    );
+    assert.throws(() => getTotpStep(new Date(Number.NaN)), /valid/u);
+    await assert.rejects(
+      Reflect.apply(verifyTotp, undefined, [
+        "123456",
+        secret,
+        new Date(59_000),
+        { afterStep: Number.NaN },
+      ]),
+      /accepted step/u
+    );
+    assert.throws(
+      () =>
+        createTotpUri({
+          issuer: "i".repeat(129),
+          accountName: "person@example.com",
+          secret,
+        }),
+      /invalid/u
     );
   });
 
@@ -112,7 +178,10 @@ describe("OTP primitives", () => {
         issuer: "Example",
         store: {
           async saveCredential(input) {
-            credential = { secret: input.secret };
+            credential = {
+              secret: input.secret,
+              lastAcceptedStep: input.lastAcceptedStep,
+            };
             recoveryHashes = new Set(input.recoveryCodeHashes);
           },
           async findCredential() {

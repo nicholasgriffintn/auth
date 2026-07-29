@@ -95,8 +95,12 @@ export function createOAuthProvider<
     tokenEndpoint: definition.tokenEndpoint,
     stateStore: options.stateStore,
     resolveIdentity: options.resolveIdentity,
-    ...(options.redirectUri ? { redirectUri: options.redirectUri } : {}),
-    ...(options.clientSecret ? { clientSecret: options.clientSecret } : {}),
+    ...(options.redirectUri !== undefined
+      ? { redirectUri: options.redirectUri }
+      : {}),
+    ...(options.clientSecret !== undefined
+      ? { clientSecret: options.clientSecret }
+      : {}),
     ...(definition.revocationEndpoint
       ? { revocationEndpoint: definition.revocationEndpoint }
       : {}),
@@ -129,7 +133,9 @@ export function createOAuthProvider<
       definition.authorizationParameters,
       options.authorizationParameters
     )),
-    ...(options.stateTtlMs ? { stateTtlMs: options.stateTtlMs } : {}),
+    ...(options.stateTtlMs !== undefined
+      ? { stateTtlMs: options.stateTtlMs }
+      : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(options.oidc ? { oidc: options.oidc } : {}),
   };

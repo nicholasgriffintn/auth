@@ -5,6 +5,8 @@ import type { OAuthTokenSet } from "./types.js";
 
 const MAX_TOKEN_RESPONSE_BYTES = 1024 * 1024;
 const MAX_TOKEN_LIFETIME_SECONDS = 365 * 24 * 60 * 60;
+const MAX_TOKEN_LENGTH = 131_072;
+const MAX_TOKEN_TYPE_LENGTH = 128;
 
 export function parseTokenResponse(
   value: unknown,
@@ -15,26 +17,68 @@ export function parseTokenResponse(
   }
   const accessToken = value.access_token;
   const tokenType = value.token_type;
-  if (typeof accessToken !== "string" || typeof tokenType !== "string") {
+  if (
+    !isBoundedString(accessToken, MAX_TOKEN_LENGTH) ||
+    !isBoundedString(tokenType, MAX_TOKEN_TYPE_LENGTH)
+  ) {
     throw new AuthError("oauth_exchange_failed");
   }
 
   const expiresIn = parseExpiresIn(value.expires_in);
+  const refreshToken = optionalToken(value.refresh_token);
+  const idToken = optionalToken(value.id_token);
+  const scopes = parseScopes(value.scope);
+  const timestamp = now.getTime();
+  if (expiresIn !== undefined && !Number.isFinite(timestamp)) {
+    throw new AuthError("oauth_exchange_failed");
+  }
+  const expiresAt =
+    expiresIn === undefined
+      ? undefined
+      : new Date(timestamp + expiresIn * 1_000);
+  if (expiresAt && !Number.isFinite(expiresAt.getTime())) {
+    throw new AuthError("oauth_exchange_failed");
+  }
   return {
     accessToken,
     tokenType,
-    ...(expiresIn === undefined
-      ? {}
-      : { expiresAt: new Date(now.getTime() + expiresIn * 1_000) }),
-    ...(typeof value.refresh_token === "string"
-      ? { refreshToken: value.refresh_token }
-      : {}),
-    ...(typeof value.id_token === "string" ? { idToken: value.id_token } : {}),
-    ...(typeof value.scope === "string"
-      ? { scopes: value.scope.split(/\s+/u).filter(Boolean) }
-      : {}),
+    ...(expiresAt ? { expiresAt } : {}),
+    ...(refreshToken ? { refreshToken } : {}),
+    ...(idToken ? { idToken } : {}),
+    ...(scopes ? { scopes } : {}),
     values: value,
   };
+}
+
+function optionalToken(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (!isBoundedString(value, MAX_TOKEN_LENGTH)) {
+    throw new AuthError("oauth_exchange_failed");
+  }
+  return value;
+}
+
+function parseScopes(value: unknown): readonly string[] | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || value.length > MAX_TOKEN_LENGTH) {
+    throw new AuthError("oauth_exchange_failed");
+  }
+  const scopes = value.split(/\s+/u).filter(Boolean);
+  if (
+    scopes.length > 100 ||
+    scopes.some((scope) => scope.length > 1_024)
+  ) {
+    throw new AuthError("oauth_exchange_failed");
+  }
+  return scopes;
+}
+
+function isBoundedString(value: unknown, maxLength: number): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= maxLength
+  );
 }
 
 export async function readTokenResponse(

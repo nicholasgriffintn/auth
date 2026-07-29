@@ -9,6 +9,8 @@ import type { DemoProviderId } from "./types";
 
 const PROFILE_TIMEOUT_MS = 8_000;
 const MAX_PROFILE_BYTES = 64 * 1_024;
+const MAX_IDENTIFIER_LENGTH = 256;
+const MAX_PROFILE_STRING_LENGTH = 2_048;
 
 export async function resolveProviderIdentity(
   provider: DemoProviderId,
@@ -35,7 +37,7 @@ async function resolveGitHubIdentity(
     { "User-Agent": "auth.nicholasgriffin.dev" },
   );
   const providerSubject = requiredIdentifier(profile.id, "GitHub");
-  let email = optionalString(profile.email);
+  let email = optionalString(profile.email, 320);
   let emailVerified: boolean | undefined;
 
   if (!email) {
@@ -50,13 +52,14 @@ async function resolveGitHubIdentity(
         (candidate) =>
           candidate.primary === true &&
           candidate.verified === true &&
-          optionalString(candidate.email),
+          optionalString(candidate.email, 320),
       ) ??
       emails.find(
         (candidate) =>
-          candidate.verified === true && optionalString(candidate.email),
+          candidate.verified === true &&
+          optionalString(candidate.email, 320),
       );
-    email = selected ? optionalString(selected.email) : undefined;
+    email = selected ? optionalString(selected.email, 320) : undefined;
     emailVerified = selected?.verified === true;
   }
 
@@ -83,7 +86,7 @@ async function resolveGoogleIdentity(
     "https://openidconnect.googleapis.com/v1/userinfo",
     accessToken,
   );
-  const email = optionalString(profile.email);
+  const email = optionalString(profile.email, 320);
   return {
     provider: "google",
     providerSubject: requiredIdentifier(profile.sub, "Google"),
@@ -108,13 +111,13 @@ async function resolveDiscordIdentity(
     "https://discord.com/api/v10/users/@me",
     accessToken,
   );
-  const email = optionalString(profile.email);
-  const avatarHash = optionalString(profile.avatar);
+  const email = optionalString(profile.email, 320);
+  const avatarHash = optionalString(profile.avatar, 256);
   const providerSubject = requiredIdentifier(profile.id, "Discord");
   const claims = avatarHash
     ? {
         ...compactClaims(profile, ["id", "username", "global_name"]),
-        avatar_url: `https://cdn.discordapp.com/avatars/${providerSubject}/${avatarHash}.png`,
+        avatar_url: `https://cdn.discordapp.com/avatars/${encodeURIComponent(providerSubject)}/${encodeURIComponent(avatarHash)}.png`,
       }
     : compactClaims(profile, ["id", "username", "global_name"]);
   return {
@@ -186,9 +189,20 @@ async function requestJson(
 }
 
 function requiredIdentifier(value: unknown, provider: string): string {
+  if (typeof value === "string") {
+    const identifier = value.trim();
+    if (
+      identifier &&
+      identifier.length <= MAX_IDENTIFIER_LENGTH &&
+      !/[\u0000-\u001F\u007F]/u.test(identifier)
+    ) {
+      return identifier;
+    }
+  }
   if (
-    (typeof value === "string" && value.trim()) ||
-    (typeof value === "number" && Number.isSafeInteger(value))
+    typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= 0
   ) {
     return String(value);
   }
@@ -198,8 +212,13 @@ function requiredIdentifier(value: unknown, provider: string): string {
   );
 }
 
-function optionalString(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+function optionalString(
+  value: unknown,
+  maxLength = MAX_PROFILE_STRING_LENGTH,
+): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const result = value.trim();
+  return result && result.length <= maxLength ? result : undefined;
 }
 
 function compactClaims(
@@ -207,10 +226,21 @@ function compactClaims(
   keys: readonly string[],
 ): Readonly<Record<string, unknown>> {
   return Object.fromEntries(
-    keys.flatMap((key) =>
-      source[key] === undefined ? [] : [[key, source[key]]],
-    ),
+    keys.flatMap((key) => {
+      const value = compactClaimValue(source[key]);
+      return value === undefined ? [] : [[key, value]];
+    }),
   );
+}
+
+function compactClaimValue(
+  value: unknown,
+): string | number | boolean | undefined {
+  if (typeof value === "string") {
+    return optionalString(value);
+  }
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  return typeof value === "boolean" ? value : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
