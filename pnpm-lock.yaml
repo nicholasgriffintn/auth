@@ -24,8 +24,6 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
-  packages/auth: {}
-
   packages/cookie: {}
 
   packages/core: {}
@@ -46,6 +44,9 @@ importers:
       '@ngriffin_uk/auth-encoding':
         specifier: workspace:*
         version: link:../encoding
+      '@ngriffin_uk/auth-request':
+        specifier: workspace:*
+        version: link:../request
 
   packages/oauth2:
     devDependencies:
@@ -61,14 +62,371 @@ importers:
       '@ngriffin_uk/auth-jwt':
         specifier: workspace:*
         version: link:../jwt
+      '@ngriffin_uk/auth-request':
+        specifier: workspace:*
+        version: link:../request
+
+  packages/otp:
+    dependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:^
+        version: link:../core
+      '@ngriffin_uk/auth-crypto':
+        specifier: workspace:^
+        version: link:../crypto
+      '@ngriffin_uk/auth-encoding':
+        specifier: workspace:^
+        version: link:../encoding
 
   packages/password:
     devDependencies:
       '@ngriffin_uk/auth-core':
         specifier: workspace:*
         version: link:../core
+      '@ngriffin_uk/auth-password-hash':
+        specifier: workspace:*
+        version: link:../password-hash
+
+  packages/password-hash:
+    dependencies:
+      '@ngriffin_uk/auth-crypto':
+        specifier: workspace:^
+        version: link:../crypto
+      '@ngriffin_uk/auth-encoding':
+        specifier: workspace:^
+        version: link:../encoding
+
+  packages/react:
+    devDependencies:
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
 
   packages/request: {}
+
+  packages/webauthn:
+    dependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:^
+        version: link:../core
+      '@ngriffin_uk/auth-crypto':
+        specifier: workspace:^
+        version: link:../crypto
+      '@ngriffin_uk/auth-encoding':
+        specifier: workspace:^
+        version: link:../encoding
+
+  providers/provider-amazon-cognito:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
+      '@ngriffin_uk/auth-encoding':
+        specifier: workspace:*
+        version: link:../../packages/encoding
+      '@ngriffin_uk/auth-jwt':
+        specifier: workspace:*
+        version: link:../../packages/jwt
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+      '@ngriffin_uk/auth-request':
+        specifier: workspace:*
+        version: link:../../packages/request
+
+  providers/provider-apple:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-jwt':
+        specifier: workspace:*
+        version: link:../../packages/jwt
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-atlassian:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-auth0:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-battlenet:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-bitbucket:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-discord:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-dribbble:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-dropbox:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-facebook:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-figma:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-gitea:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-github:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-gitlab:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-google:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-keycloak:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-linear:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-linkedin:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-mastodon:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-microsoft-entra-id:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-notion:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-okta:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-polar:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-reddit:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-salesforce:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-slack:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-spotify:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-tiktok:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-tumblr:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-twitch:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-twitter:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-vk:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
+
+  providers/provider-yahoo:
+    devDependencies:
+      '@ngriffin_uk/auth-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@ngriffin_uk/auth-oauth2':
+        specifier: workspace:*
+        version: link:../../packages/oauth2
 
 packages:
 

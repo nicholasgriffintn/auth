@@ -1,0 +1,36 @@
+{
+  "name": "@ngriffin_uk/auth-provider-apple",
+  "version": "0.1.0",
+  "description": "apple authentication provider for @ngriffin_uk/auth-core",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "@ngriffin_uk/auth-core": "^0.1.0",
+    "@ngriffin_uk/auth-oauth2": "^0.1.0",
+    "@ngriffin_uk/auth-jwt": "^0.1.0"
+  },
+  "devDependencies": {
+    "@ngriffin_uk/auth-core": "workspace:*",
+    "@ngriffin_uk/auth-oauth2": "workspace:*",
+    "@ngriffin_uk/auth-jwt": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "license": "Apache-2.0"
+}
