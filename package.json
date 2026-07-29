@@ -2,9 +2,15 @@
   "name": "@ngriffin_uk/auth",
   "version": "1.0.0",
   "description": "A reusable auth system for my applications",
-  "scripts": {},
+  "scripts": {
+    "changeset:generate": "pnpm changeset",
+    "changeset:version": "pnpm changeset version",
+    "publish": "pnpm publish -r"
+  },
   "keywords": [],
   "author": "Nicholas Griffin",
   "license": "Apache 2.0",
-  "devDependencies": {}
+  "devDependencies": {
+    "@changesets/cli": "^2.31.1"
+  }
 }
