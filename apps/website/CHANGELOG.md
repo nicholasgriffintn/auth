@@ -1,5 +1,25 @@
 # @ngriffin_uk/auth-website
 
+## 0.1.0
+
+### Minor Changes
+
+- c915fdb: feat: improving auth flows
+
+### Patch Changes
+
+- fix: swap to scrypt
+- Updated dependencies [c915fdb]
+- Updated dependencies [c915fdb]
+  - @ngriffin_uk/auth-password@2.0.0
+  - @ngriffin_uk/auth-core@0.3.0
+  - @ngriffin_uk/auth-react@0.3.0
+  - @ngriffin_uk/auth-otp@0.3.0
+  - @ngriffin_uk/auth-webauthn@0.3.0
+  - @ngriffin_uk/auth-provider-amazon-cognito@2.0.0
+  - @ngriffin_uk/auth-oauth2@2.0.0
+  - @ngriffin_uk/auth-provider-github@2.0.0
+
 ## 0.0.2
 
 ### Patch Changes

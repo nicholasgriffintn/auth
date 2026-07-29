@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-provider-dribbble",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "dribbble authentication provider for @ngriffin_uk/auth-core",
   "type": "module",
   "sideEffects": false,
@@ -20,8 +20,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
-    "@ngriffin_uk/auth-core": "^0.2.3",
-    "@ngriffin_uk/auth-oauth2": "^1.0.2"
+    "@ngriffin_uk/auth-core": "^0.3.0",
+    "@ngriffin_uk/auth-oauth2": "^2.0.0"
   },
   "devDependencies": {
     "@ngriffin_uk/auth-core": "workspace:*",

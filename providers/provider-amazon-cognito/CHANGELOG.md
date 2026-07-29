@@ -1,5 +1,18 @@
 # @ngriffin_uk/auth-provider-amazon-cognito
 
+## 2.0.0
+
+### Minor Changes
+
+- c915fdb: feat: improving auth flows
+
+### Patch Changes
+
+- Updated dependencies [c915fdb]
+- Updated dependencies [c915fdb]
+  - @ngriffin_uk/auth-core@0.3.0
+  - @ngriffin_uk/auth-oauth2@2.0.0
+
 ## 1.0.2
 
 ### Patch Changes

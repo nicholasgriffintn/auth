@@ -1,5 +1,14 @@
 # @ngriffin_uk/auth-provider-facebook
 
+## 2.0.0
+
+### Patch Changes
+
+- Updated dependencies [c915fdb]
+- Updated dependencies [c915fdb]
+  - @ngriffin_uk/auth-core@0.3.0
+  - @ngriffin_uk/auth-oauth2@2.0.0
+
 ## 1.0.1
 
 ### Patch Changes

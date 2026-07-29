@@ -1,5 +1,14 @@
 # @ngriffin_uk/auth-react
 
+## 0.3.0
+
+### Minor Changes
+
+- c915fdb: Add shared record validation, sessionless password verification, authenticated
+  security setup components, and user-bound TOTP and WebAuthn enrolment
+  continuations.
+- c915fdb: feat: improving auth flows
+
 ## 0.2.2
 
 ### Patch Changes

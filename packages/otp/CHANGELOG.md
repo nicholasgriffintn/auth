@@ -1,5 +1,20 @@
 # @ngriffin_uk/auth-otp
 
+## 0.3.0
+
+### Minor Changes
+
+- c915fdb: Add shared record validation, sessionless password verification, authenticated
+  security setup components, and user-bound TOTP and WebAuthn enrolment
+  continuations.
+- c915fdb: feat: improving auth flows
+
+### Patch Changes
+
+- Updated dependencies [c915fdb]
+- Updated dependencies [c915fdb]
+  - @ngriffin_uk/auth-core@0.3.0
+
 ## 0.2.2
 
 ### Patch Changes

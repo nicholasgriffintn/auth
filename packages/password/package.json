@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-password",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "Password authentication plugin for @ngriffin_uk/auth-core",
   "type": "module",
   "sideEffects": false,
@@ -21,7 +21,7 @@
     "test": "tsc -p tsconfig.test.json && node --test .test-dist/**/*.test.js"
   },
   "peerDependencies": {
-    "@ngriffin_uk/auth-core": "^0.2.3",
+    "@ngriffin_uk/auth-core": "^0.3.0",
     "@ngriffin_uk/auth-password-hash": "^0.2.2"
   },
   "devDependencies": {
