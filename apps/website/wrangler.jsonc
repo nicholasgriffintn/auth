@@ -16,12 +16,7 @@
   },
   "secrets": {
     "required": [
-      "GITHUB_CLIENT_ID",
-      "GITHUB_CLIENT_SECRET",
-      "GOOGLE_CLIENT_ID",
-      "GOOGLE_CLIENT_SECRET",
-      "DISCORD_CLIENT_ID",
-      "DISCORD_CLIENT_SECRET"
+      "AUTH_ENCRYPTION_KEY"
     ]
   },
   "assets": {

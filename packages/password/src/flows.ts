@@ -65,19 +65,7 @@ export async function signIn<User extends AuthUser>(
   const email = normaliseEmailInput(input.email, runtime.normaliseEmail);
   validateCredentialInput({ ...input, email });
   try {
-    const account = await runtime.config.store.findByEmail(email);
-    if (!account) {
-      await runtime.config.hasher.hash(input.password);
-      rejectCredentials(runtime, startedAt);
-    }
-    if (
-      !(await runtime.config.hasher.verify(
-        input.password,
-        account.passwordHash
-      ))
-    ) {
-      rejectCredentials(runtime, startedAt);
-    }
+    const account = await verifiedPasswordAccount(runtime, email, input.password);
     const result =
       !account.emailVerified && runtime.config.emailVerification
         ? await issueEmailVerification(runtime, account.user)
@@ -85,8 +73,24 @@ export async function signIn<User extends AuthUser>(
     report(runtime, "password.sign_in", "success", startedAt);
     return result;
   } catch (cause) {
-    if (cause instanceof AuthError) throw cause;
-    report(runtime, "password.sign_in", "error", startedAt, "storage_error");
+    reportFailure(runtime, "password.sign_in", startedAt, cause);
+    throw safeFailure(cause);
+  }
+}
+
+export async function verifyCredentials<User extends AuthUser>(
+  runtime: PasswordRuntime<User>,
+  input: PasswordInput
+): Promise<User> {
+  const startedAt = performance.now();
+  const email = normaliseEmailInput(input.email, runtime.normaliseEmail);
+  validateCredentialInput({ ...input, email });
+  try {
+    const account = await verifiedPasswordAccount(runtime, email, input.password);
+    report(runtime, "password.verify_credentials", "success", startedAt);
+    return account.user;
+  } catch (cause) {
+    reportFailure(runtime, "password.verify_credentials", startedAt, cause);
     throw safeFailure(cause);
   }
 }
@@ -235,18 +239,35 @@ async function authenticated<User extends AuthUser>(
   };
 }
 
-function rejectCredentials<User extends AuthUser>(
+async function verifiedPasswordAccount<User extends AuthUser>(
   runtime: PasswordRuntime<User>,
-  startedAt: number
-): never {
+  email: string,
+  password: string
+) {
+  const account = await runtime.config.store.findByEmail(email);
+  if (!account) {
+    await runtime.config.hasher.hash(password);
+    throw new AuthError("invalid_credentials");
+  }
+  if (!(await runtime.config.hasher.verify(password, account.passwordHash))) {
+    throw new AuthError("invalid_credentials");
+  }
+  return account;
+}
+
+function reportFailure<User extends AuthUser>(
+  runtime: PasswordRuntime<User>,
+  operation: string,
+  startedAt: number,
+  cause: unknown
+): void {
   report(
     runtime,
-    "password.sign_in",
-    "rejected",
+    operation,
+    cause instanceof AuthError ? "rejected" : "error",
     startedAt,
-    "invalid_credentials"
+    cause instanceof AuthError ? cause.code : "storage_error"
   );
-  throw new AuthError("invalid_credentials");
 }
 
 function report<User extends AuthUser>(

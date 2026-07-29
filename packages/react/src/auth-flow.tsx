@@ -15,6 +15,24 @@ export function AuthFlow({ className: customClassName }: { readonly className?: 
       className={customClassName ?? className(config, "panel")}
       data-auth-view={state.view}
     >
+      <AuthFeedback />
+      {state.view === "sign_in" ? (
+        <SignInScreen />
+      ) : state.view === "sign_up" ? (
+        <SignUpScreen />
+      ) : state.view === "forgot_password" ? (
+        <RecoveryScreen />
+      ) : (
+        <ChallengeScreen />
+      )}
+    </div>
+  );
+}
+
+export function AuthFeedback() {
+  const { config, state } = useAuth();
+  return (
+    <>
       {state.error ? (
         <div className={className(config, "error")} role="alert">
           {state.error}
@@ -29,15 +47,6 @@ export function AuthFlow({ className: customClassName }: { readonly className?: 
           {state.status}
         </div>
       ) : null}
-      {state.view === "sign_in" ? (
-        <SignInScreen />
-      ) : state.view === "sign_up" ? (
-        <SignUpScreen />
-      ) : state.view === "forgot_password" ? (
-        <RecoveryScreen />
-      ) : (
-        <ChallengeScreen />
-      )}
-    </div>
+    </>
   );
 }

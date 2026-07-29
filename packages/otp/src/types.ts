@@ -34,6 +34,7 @@ export interface OtpOperations<User extends AuthUser> {
   verifySetup(input: {
     readonly token: string;
     readonly code: string;
+    readonly expectedUserId?: string;
   }): Promise<AuthFlowResult<User>>;
   createChallenge(userId: string): Promise<AuthFlowResult<User>>;
   verifyChallenge(input: {

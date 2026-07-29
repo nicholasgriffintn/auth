@@ -1,4 +1,5 @@
 import { constantTimeEqual, requireSubtle, sha256, toArrayBuffer } from "@ngriffin_uk/auth-crypto";
+import { isRecord } from "@ngriffin_uk/auth-core";
 import { decodeBase64Url, encodeBase64Url } from "@ngriffin_uk/auth-encoding";
 
 import {
@@ -381,10 +382,6 @@ function concat(...parts: readonly Uint8Array[]): Uint8Array {
     offset += part.length;
   }
   return output;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function decodeBoundedBase64Url(

@@ -2,6 +2,10 @@ import { AuthError } from "./errors.js";
 
 const textEncoder = new TextEncoder();
 
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export function normaliseEmail(email: string): string {
   return email.trim().toLocaleLowerCase("en-US");
 }

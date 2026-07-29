@@ -1,5 +1,6 @@
 import {
   AuthError,
+  isRecord,
   type AuthChallengeKind,
   type AuthFlowResult,
   type AuthPlugin,
@@ -21,7 +22,6 @@ import {
 } from "./cognito-client.js";
 import {
   hasRequiredTokenTimes,
-  isRecord,
   MAX_PARAMETER_COUNT,
   MAX_PARAMETER_LENGTH,
   optionalAuthenticationResult,

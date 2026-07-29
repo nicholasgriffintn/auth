@@ -14,6 +14,7 @@ export interface AuthState {
 
 export type AuthStateAction =
   | { readonly type: "navigate"; readonly view: Exclude<AuthView, "challenge"> }
+  | { readonly type: "challenge"; readonly challenge: AuthClientChallenge }
   | { readonly type: "submit" }
   | { readonly type: "error"; readonly message: string }
   | { readonly type: "result"; readonly result: AuthClientResult }
@@ -29,6 +30,12 @@ export function authStateReducer(
   action: AuthStateAction
 ): AuthState {
   switch (action.type) {
+    case "challenge":
+      return {
+        view: "challenge",
+        challenge: action.challenge,
+        submitting: false,
+      };
     case "navigate":
       return {
         view: action.view,
@@ -85,6 +92,13 @@ function stateFromResult(
       view: result.next ?? "sign_in",
       submitting: false,
       status: "Authentication step completed.",
+    };
+  }
+  if (result.status === "authenticated") {
+    return {
+      view: "sign_in",
+      submitting: false,
+      status: "Authentication complete.",
     };
   }
   const { error: _error, ...current } = state;

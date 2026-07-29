@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { AuthError, createAuth, hashSecret } from "./index.js";
+import {
+  AuthError,
+  createAuth,
+  hashSecret,
+  isRecord,
+} from "./index.js";
 import type {
   AuthSessionRecord,
   AuthUser,
@@ -11,6 +16,14 @@ import type {
 interface TestUser extends AuthUser {
   readonly displayName: string;
 }
+
+it("identifies plain and null-prototype records", () => {
+  assert.equal(isRecord({ value: true }), true);
+  assert.equal(isRecord(Object.create(null)), true);
+  assert.equal(isRecord([]), false);
+  assert.equal(isRecord(null), false);
+  assert.equal(isRecord("value"), false);
+});
 
 function createStores(user: TestUser) {
   const sessions = new Map<string, AuthSessionRecord>();

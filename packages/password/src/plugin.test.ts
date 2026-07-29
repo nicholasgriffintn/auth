@@ -209,6 +209,32 @@ describe("passwordAuth", () => {
     assert.deepEqual(missing.hashCalls, ["incorrect password"]);
   });
 
+  it("verifies credentials without issuing a session", async () => {
+    const user: TestUser = {
+      id: "user-1",
+      email: "person@example.com",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      role: "member",
+    };
+    const setupResult = setup({
+      user,
+      passwordHash: "hashed:correct password",
+      emailVerified: true,
+    });
+
+    assert.deepEqual(
+      await setupResult.auth.providers.password.verifyCredentials({
+        email: user.email,
+        password: "correct password",
+      }),
+      user
+    );
+    assert.equal(
+      await setupResult.auth.validateSession("not-a-session"),
+      null
+    );
+  });
+
   it("allows existing credentials that predate a stricter creation policy", async () => {
     const user: TestUser = {
       id: "user-1",

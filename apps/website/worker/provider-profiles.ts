@@ -1,11 +1,15 @@
-import { AuthError, type ExternalIdentity } from "@ngriffin_uk/auth-core";
+import {
+  AuthError,
+  isRecord,
+  type ExternalIdentity,
+} from "@ngriffin_uk/auth-core";
 import type { OAuthTokenSet } from "@ngriffin_uk/auth-oauth2";
 import {
   readResponseText,
   requestWithTimeout,
 } from "@ngriffin_uk/auth-request";
 
-import type { DemoProviderId } from "./types";
+import type { OAuthDemoProviderId } from "./types";
 
 const PROFILE_TIMEOUT_MS = 8_000;
 const MAX_PROFILE_BYTES = 64 * 1_024;
@@ -13,17 +17,25 @@ const MAX_IDENTIFIER_LENGTH = 256;
 const MAX_PROFILE_STRING_LENGTH = 2_048;
 
 export async function resolveProviderIdentity(
-  provider: DemoProviderId,
+  provider: OAuthDemoProviderId,
   tokens: OAuthTokenSet,
-  request: typeof fetch = globalThis.fetch,
+  options: {
+    readonly cognitoUserInfoEndpoint?: string;
+    readonly request?: typeof fetch;
+  } = {},
 ): Promise<ExternalIdentity> {
+  const request = options.request ?? globalThis.fetch;
   if (provider === "github") {
     return resolveGitHubIdentity(tokens.accessToken, request);
   }
-  if (provider === "google") {
-    return resolveGoogleIdentity(tokens.accessToken, request);
+  if (!options.cognitoUserInfoEndpoint) {
+    throw providerProfileError();
   }
-  return resolveDiscordIdentity(tokens.accessToken, request);
+  return resolveAmazonCognitoIdentity(
+    tokens.accessToken,
+    options.cognitoUserInfoEndpoint,
+    request,
+  );
 }
 
 async function resolveGitHubIdentity(
@@ -77,57 +89,25 @@ async function resolveGitHubIdentity(
   };
 }
 
-async function resolveGoogleIdentity(
+async function resolveAmazonCognitoIdentity(
   accessToken: string,
+  userInfoEndpoint: string,
   request: typeof fetch,
 ): Promise<ExternalIdentity> {
   const profile = await requestJsonObject(
     request,
-    "https://openidconnect.googleapis.com/v1/userinfo",
+    userInfoEndpoint,
     accessToken,
   );
   const email = optionalString(profile.email, 320);
   return {
-    provider: "google",
-    providerSubject: requiredIdentifier(profile.sub, "Google"),
+    provider: "amazon-cognito",
+    providerSubject: requiredIdentifier(profile.sub, "Amazon Cognito"),
     ...(email ? { email } : {}),
     ...(typeof profile.email_verified === "boolean"
       ? { emailVerified: profile.email_verified }
       : {}),
-    claims: compactClaims(profile, [
-      "sub",
-      "name",
-      "picture",
-    ]),
-  };
-}
-
-async function resolveDiscordIdentity(
-  accessToken: string,
-  request: typeof fetch,
-): Promise<ExternalIdentity> {
-  const profile = await requestJsonObject(
-    request,
-    "https://discord.com/api/v10/users/@me",
-    accessToken,
-  );
-  const email = optionalString(profile.email, 320);
-  const avatarHash = optionalString(profile.avatar, 256);
-  const providerSubject = requiredIdentifier(profile.id, "Discord");
-  const claims = avatarHash
-    ? {
-        ...compactClaims(profile, ["id", "username", "global_name"]),
-        avatar_url: `https://cdn.discordapp.com/avatars/${encodeURIComponent(providerSubject)}/${encodeURIComponent(avatarHash)}.png`,
-      }
-    : compactClaims(profile, ["id", "username", "global_name"]);
-  return {
-    provider: "discord",
-    providerSubject,
-    ...(email ? { email } : {}),
-    ...(typeof profile.verified === "boolean"
-      ? { emailVerified: profile.verified }
-      : {}),
-    claims,
+    claims: compactClaims(profile, ["sub", "name", "picture", "username"]),
   };
 }
 
@@ -241,10 +221,6 @@ function compactClaimValue(
   }
   if (typeof value === "number" && Number.isFinite(value)) return value;
   return typeof value === "boolean" ? value : undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function providerProfileError(cause?: unknown): AuthError {

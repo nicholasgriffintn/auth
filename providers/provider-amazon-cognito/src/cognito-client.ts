@@ -1,4 +1,4 @@
-import { AuthError } from "@ngriffin_uk/auth-core";
+import { AuthError, isRecord } from "@ngriffin_uk/auth-core";
 import { hmac } from "@ngriffin_uk/auth-crypto";
 import { encodeBase64 } from "@ngriffin_uk/auth-encoding";
 import {
@@ -160,8 +160,4 @@ function validateEndpoint(value: string): URL {
     throw new TypeError("Amazon Cognito endpoint must be a secure HTTPS URL.");
   }
   return url;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -56,6 +56,7 @@ export interface PasswordInput {
 }
 
 export interface PasswordOperations<User extends AuthUser> {
+  verifyCredentials(input: PasswordInput): Promise<User>;
   signUp(input: PasswordInput): Promise<AuthFlowResult<User>>;
   signIn(input: PasswordInput): Promise<AuthFlowResult<User>>;
   verifyEmail(input: {

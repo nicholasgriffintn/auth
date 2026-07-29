@@ -33,7 +33,13 @@ export function webAuthn<User extends AuthUser>(
         startRegistration: (input) =>
           startRegistration(context, config, input),
         finishRegistration: (input) =>
-          finishRegistration(context, config, input.token, input.response),
+          finishRegistration(
+            context,
+            config,
+            input.token,
+            input.response,
+            input.expectedUserId,
+          ),
         startAuthentication: (userId) =>
           startAuthentication(context, config, userId),
         finishAuthentication: (input) =>
@@ -83,13 +89,17 @@ async function finishRegistration<User extends AuthUser>(
   context: AuthPluginContext<User>,
   config: WebAuthnPluginConfig,
   token: string,
-  response: WebAuthnRegistrationResponse
+  response: WebAuthnRegistrationResponse,
+  expectedUserId?: string
 ): Promise<AuthFlowResult<User>> {
   const challenge = await context.consumeChallenge(token, "webauthn", [
     "webauthn",
   ]);
   requireCeremony(challenge.payload, "registration");
   const userId = payloadString(challenge.payload, "userId");
+  if (expectedUserId && expectedUserId !== userId) {
+    throw new AuthError("challenge_mismatch");
+  }
   let parsed;
   let transports: readonly AuthenticatorTransport[] | undefined;
   try {

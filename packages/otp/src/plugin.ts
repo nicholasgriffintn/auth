@@ -94,12 +94,19 @@ async function startSetup<User extends AuthUser>(
 async function verifySetup<User extends AuthUser>(
   context: AuthPluginContext<User>,
   config: OtpPluginConfig,
-  input: { readonly token: string; readonly code: string }
+  input: {
+    readonly token: string;
+    readonly code: string;
+    readonly expectedUserId?: string;
+  }
 ): Promise<AuthFlowResult<User>> {
   const challenge = await context.consumeChallenge(input.token, "otp", [
     "mfa_setup",
   ]);
   const userId = payloadString(challenge.payload, "userId");
+  if (input.expectedUserId && input.expectedUserId !== userId) {
+    throw new AuthError("challenge_mismatch");
+  }
   const secret = decodeSecret(challenge.payload);
   const verification = await verifyTotp(
     input.code,

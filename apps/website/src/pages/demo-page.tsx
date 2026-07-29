@@ -8,9 +8,11 @@ export function DemoPage(): React.JSX.Element {
       <header>
         <h1>Use the packages, not a simulation.</h1>
         <p>
-          These sign-in buttons enter real OAuth flows through this site’s
-          Cloudflare Worker. The Worker composes auth-core with each provider
-          and supplies its own SQLite-backed storage adapters.
+          The auth-react components below enter real password and OAuth flows
+          through this site’s Cloudflare Worker. The Worker composes auth-core
+          with each capability, including TOTP and WebAuthn enrolment, and
+          supplies its own SQLite-backed storage adapters.
+          Once configured, those factors are enforced after sign-out.
         </p>
       </header>
       {error ? (
@@ -23,18 +25,19 @@ export function DemoPage(): React.JSX.Element {
         <h2>What this proves</h2>
         <div>
           <p>
-            <strong>The provider package owns protocol behaviour.</strong>
-            State, PKCE and token exchange run through the same middleware a
-            consuming service installs.
+            <strong>The package owns authentication behaviour.</strong>
+            Password hashing, state, PKCE, token exchange and MFA ceremonies
+            run through the same middleware a consuming service installs.
           </p>
           <p>
             <strong>The website owns application data.</strong>
-            Users, external identities and sessions live in this Worker—not in
-            a shared package.
+            Users, password hashes, external identities and sessions live in
+            this Worker—not in a shared package.
           </p>
           <p>
             <strong>The browser receives an opaque session.</strong>
-            Only hashed session and OAuth state values are persisted.
+            Session tokens are hashed. TOTP secrets and challenge payloads are
+            encrypted before persistence.
           </p>
         </div>
       </section>

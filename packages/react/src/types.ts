@@ -67,6 +67,9 @@ export type AuthRequest =
       readonly action: "start_passkey";
       readonly values: Readonly<Record<string, string>>;
     }
+  | { readonly action: "start_totp_setup" }
+  | { readonly action: "start_webauthn_registration" }
+  | { readonly action: "resume_mfa" }
   | {
       readonly action: "continue";
       readonly continuationToken: string;
@@ -137,6 +140,20 @@ export interface AuthCopy {
   readonly confirmPasswordLabel: string;
   readonly continueLabel: string;
   readonly passkeyLabel: string;
+  readonly securityTitle: string;
+  readonly totpTitle: string;
+  readonly totpDescription: string;
+  readonly totpSetupLabel: string;
+  readonly totpConfiguredLabel: string;
+  readonly passkeyTitle: string;
+  readonly passkeyDescription: string;
+  readonly passkeySetupLabel: string;
+  readonly passkeyChallengeTitle: string;
+  readonly totpOrRecoveryLabel: string;
+  readonly totpOrRecoveryCodeLabel: string;
+  readonly totpOrRecoveryDescription: string;
+  readonly recoveryCodesLabel: string;
+  readonly cancelLabel: string;
   readonly resendLabel: string;
   readonly genericError: string;
   readonly unsupportedChallenge: string;
@@ -205,5 +222,8 @@ export type AuthClassName =
   | "panel"
   | "providerButton"
   | "providerList"
+  | "recoveryCodes"
+  | "securityItem"
+  | "securityList"
   | "status"
   | "title";

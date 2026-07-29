@@ -35,7 +35,7 @@ test("GitHub identity resolution selects a verified email and minimises claims",
     return response;
   };
 
-  const identity = await resolveProviderIdentity("github", tokens, request);
+  const identity = await resolveProviderIdentity("github", tokens, { request });
   assert.equal(identity.providerSubject, "42");
   assert.equal(identity.email, "octocat@example.com");
   assert.equal(identity.emailVerified, true);
@@ -47,12 +47,21 @@ test("GitHub identity resolution selects a verified email and minimises claims",
   });
 });
 
-test("Google identity resolution rejects a response without a subject", async () => {
-  const request: typeof fetch = async () =>
-    Response.json({ email: "person@example.com" });
+test("Amazon Cognito identity resolution rejects a response without a subject", async () => {
+  const request: typeof fetch = async (input) => {
+    assert.equal(
+      String(input),
+      "https://example.auth.eu-west-2.amazoncognito.com/oauth2/userInfo",
+    );
+    return Response.json({ email: "person@example.com" });
+  };
 
   await assert.rejects(
-    resolveProviderIdentity("google", tokens, request),
+    resolveProviderIdentity("amazon-cognito", tokens, {
+      request,
+      cognitoUserInfoEndpoint:
+        "https://example.auth.eu-west-2.amazoncognito.com/oauth2/userInfo",
+    }),
     (error) => error instanceof AuthError && error.code === "provider_error",
   );
 });
@@ -61,7 +70,11 @@ test("provider identifiers and persisted claim strings are bounded", async () =>
   const oversizedSubjectRequest: typeof fetch = async () =>
     Response.json({ sub: "x".repeat(257) });
   await assert.rejects(
-    resolveProviderIdentity("google", tokens, oversizedSubjectRequest),
+    resolveProviderIdentity("amazon-cognito", tokens, {
+      request: oversizedSubjectRequest,
+      cognitoUserInfoEndpoint:
+        "https://example.auth.eu-west-2.amazoncognito.com/oauth2/userInfo",
+    }),
     (error) => error instanceof AuthError && error.code === "provider_error",
   );
 
@@ -72,9 +85,13 @@ test("provider identifiers and persisted claim strings are bounded", async () =>
       picture: "https://example.com/avatar.png",
     });
   const identity = await resolveProviderIdentity(
-    "google",
+    "amazon-cognito",
     tokens,
-    boundedClaimsRequest,
+    {
+      request: boundedClaimsRequest,
+      cognitoUserInfoEndpoint:
+        "https://example.auth.eu-west-2.amazoncognito.com/oauth2/userInfo",
+    },
   );
   assert.deepEqual(identity.claims, {
     sub: "subject-1",
@@ -82,23 +99,25 @@ test("provider identifiers and persisted claim strings are bounded", async () =>
   });
 });
 
-test("Discord identity resolution derives a displayable avatar URL", async () => {
+test("Amazon Cognito identity resolution maps verified profile claims", async () => {
   const request: typeof fetch = async () =>
     Response.json({
-      id: "123",
+      sub: "123",
       username: "demo-user",
-      global_name: "Demo User",
+      name: "Demo User",
       email: "demo@example.com",
-      verified: true,
-      avatar: "abc",
+      email_verified: true,
+      picture: "https://example.com/avatar.png",
     });
 
-  const identity = await resolveProviderIdentity("discord", tokens, request);
+  const identity = await resolveProviderIdentity("amazon-cognito", tokens, {
+    request,
+    cognitoUserInfoEndpoint:
+      "https://example.auth.eu-west-2.amazoncognito.com/oauth2/userInfo",
+  });
   assert.equal(identity.emailVerified, true);
-  assert.equal(
-    identity.claims.avatar_url,
-    "https://cdn.discordapp.com/avatars/123/abc.png",
-  );
+  assert.equal(identity.provider, "amazon-cognito");
+  assert.equal(identity.claims.picture, "https://example.com/avatar.png");
 });
 
 test("provider profile responses are bounded", async () => {
@@ -108,7 +127,11 @@ test("provider profile responses are bounded", async () => {
     });
 
   await assert.rejects(
-    resolveProviderIdentity("google", tokens, request),
+    resolveProviderIdentity("amazon-cognito", tokens, {
+      request,
+      cognitoUserInfoEndpoint:
+        "https://example.auth.eu-west-2.amazoncognito.com/oauth2/userInfo",
+    }),
     (error) => error instanceof AuthError && error.code === "provider_error",
   );
 });

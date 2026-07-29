@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   AuthError,
   createAuth,
+  isRecord,
   type AuthChallengeRecord,
   type AuthSessionRecord,
   type AuthUser,
@@ -542,10 +543,6 @@ function record(value: unknown): Readonly<Record<string, unknown>> {
     throw new Error("Expected an object.");
   }
   return value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function json(value: unknown, status = 200): Response {

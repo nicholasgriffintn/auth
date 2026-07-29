@@ -11,6 +11,7 @@ import {
   resolveConfig,
   uiConfig,
 } from "./config.js";
+import { alternativeAuthChallenge } from "./challenge.js";
 import {
   authStateReducer,
   INITIAL_AUTH_STATE,
@@ -35,6 +36,7 @@ export interface AuthContextValue {
   ) => Promise<void>;
   readonly resendVerification: () => Promise<void>;
   readonly usePasskey: () => Promise<void>;
+  readonly useAlternativeChallenge: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -122,6 +124,14 @@ export function AuthProvider<User>({
     }
   }, [config, continueChallenge, resolvedConfig, state.challenge]);
 
+  const useAlternativeChallenge = useCallback(() => {
+    if (!state.challenge) return;
+    const alternative = alternativeAuthChallenge(state.challenge);
+    if (alternative) {
+      dispatch({ type: "challenge", challenge: alternative });
+    }
+  }, [state.challenge]);
+
   const navigate = useCallback(
     (view: Exclude<AuthView, "challenge">) => {
       dispatch({ type: "navigate", view });
@@ -139,6 +149,7 @@ export function AuthProvider<User>({
       continueChallenge,
       resendVerification,
       usePasskey,
+      useAlternativeChallenge,
     }),
     [
       config,
@@ -148,6 +159,7 @@ export function AuthProvider<User>({
       continueChallenge,
       resendVerification,
       usePasskey,
+      useAlternativeChallenge,
     ]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

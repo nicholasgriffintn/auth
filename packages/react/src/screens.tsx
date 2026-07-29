@@ -14,9 +14,9 @@ export function SignInScreen() {
   const { config, state, navigate, submit } = useAuth();
   return (
     <section aria-labelledby="auth-sign-in-title" data-auth-screen="sign-in">
-      <h1 className={className(config, "title")} id="auth-sign-in-title">
+      <h2 className={className(config, "title")} id="auth-sign-in-title">
         {config.copy.signInTitle}
-      </h1>
+      </h2>
       {config.capabilities.password ? (
         <DynamicAuthForm
           config={config}
@@ -86,9 +86,9 @@ export function SignUpScreen() {
   const { config, state, navigate, submit } = useAuth();
   return (
     <section aria-labelledby="auth-sign-up-title" data-auth-screen="sign-up">
-      <h1 className={className(config, "title")} id="auth-sign-up-title">
+      <h2 className={className(config, "title")} id="auth-sign-up-title">
         {config.copy.signUpTitle}
-      </h1>
+      </h2>
       <DynamicAuthForm
         config={config}
         fields={config.signUpFields}
@@ -121,9 +121,9 @@ export function RecoveryScreen() {
   ];
   return (
     <section aria-labelledby="auth-recovery-title" data-auth-screen="recovery">
-      <h1 className={className(config, "title")} id="auth-recovery-title">
+      <h2 className={className(config, "title")} id="auth-recovery-title">
         {config.copy.recoveryTitle}
-      </h1>
+      </h2>
       <DynamicAuthForm
         config={config}
         fields={fields}
@@ -153,6 +153,7 @@ export function ChallengeScreen() {
     state,
     continueChallenge,
     resendVerification,
+    useAlternativeChallenge,
     usePasskey,
   } = useAuth();
   const challenge = state.challenge;
@@ -165,21 +166,36 @@ export function ChallengeScreen() {
       className={className(config, "challenge")}
       data-auth-challenge={challenge.kind}
     >
-      <h1 className={className(config, "title")} id="auth-challenge-title">
+      <h2 className={className(config, "title")} id="auth-challenge-title">
         {title}
-      </h1>
+      </h2>
       {challenge.kind === "mfa_selection" ? (
         <ChallengeSelection challenge={challenge} />
       ) : challenge.kind === "webauthn" ? (
         config.resolveWebAuthn ? (
-          <button
-            className={className(config, "button")}
-            disabled={state.submitting}
-            onClick={() => void usePasskey()}
-            type="button"
-          >
-            {config.copy.passkeyLabel}
-          </button>
+          <div className={className(config, "actions")}>
+            <button
+              className={className(config, "button")}
+              disabled={state.submitting}
+              onClick={() => void usePasskey()}
+              type="button"
+            >
+              {config.copy.passkeyLabel}
+            </button>
+            {challengeParameter(
+              challenge,
+              "alternativeContinuationToken",
+            ) ? (
+              <button
+                className={className(config, "linkButton")}
+                disabled={state.submitting}
+                onClick={useAlternativeChallenge}
+                type="button"
+              >
+                {config.copy.totpOrRecoveryLabel}
+              </button>
+            ) : null}
+          </div>
         ) : (
           <UnsupportedChallenge challenge={challenge} />
         )
@@ -270,6 +286,7 @@ function TotpSetup({
   const { config } = useAuth();
   const secret = challengeParameter(challenge, "secret");
   const uri = challengeParameter(challenge, "uri");
+  const recoveryCodes = challenge.parameters?.["recoveryCodes"];
   return (
     <div data-auth-totp-setup="">
       {uri ? config.renderTotpQrCode?.(uri) : null}
@@ -278,6 +295,23 @@ function TotpSetup({
           <span>Manual setup code: </span>
           <code>{secret}</code>
         </p>
+      ) : null}
+      {Array.isArray(recoveryCodes) && recoveryCodes.length > 0 ? (
+        <>
+          <p className={className(config, "description")}>
+            {config.copy.recoveryCodesLabel}
+          </p>
+          <ul
+            className={className(config, "recoveryCodes")}
+            data-auth-recovery-codes=""
+          >
+            {recoveryCodes.map((code) => (
+              <li key={code}>
+                <code>{code}</code>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : null}
     </div>
   );
@@ -305,6 +339,8 @@ function challengeFields(
     readonly passwordLabel: string;
     readonly newPasswordLabel: string;
     readonly confirmPasswordLabel: string;
+    readonly totpOrRecoveryCodeLabel: string;
+    readonly totpOrRecoveryDescription: string;
   }
 ): readonly AuthField[] {
   if (challenge.kind === "password") {
@@ -333,6 +369,17 @@ function challengeFields(
         name: "answer",
         label: challengeParameter(challenge, "prompt") ?? copy.codeLabel,
         required: true,
+      },
+    ];
+  }
+  if (
+    challenge.kind === "software_token_mfa" &&
+    challengeParameter(challenge, "method") === "totp_or_recovery"
+  ) {
+    return [
+      {
+        ...codeField(copy.totpOrRecoveryCodeLabel, false),
+        description: copy.totpOrRecoveryDescription,
       },
     ];
   }
@@ -380,12 +427,12 @@ function passwordFields(
   ];
 }
 
-function codeField(label: string): AuthField {
+function codeField(label: string, numeric = true): AuthField {
   return {
     name: "code",
     label,
     autoComplete: "one-time-code",
-    inputMode: "numeric",
+    inputMode: numeric ? "numeric" : "text",
     required: true,
     minLength: 4,
     maxLength: 2048,
@@ -399,6 +446,9 @@ function challengeTitle(
     readonly codeLabel: string;
     readonly newPasswordLabel: string;
     readonly passkeyLabel: string;
+    readonly passkeyChallengeTitle: string;
+    readonly passkeySetupLabel: string;
+    readonly totpOrRecoveryCodeLabel: string;
   }
 ): string {
   switch (challenge.kind) {
@@ -407,11 +457,17 @@ function challengeTitle(
     case "new_password":
       return copy.newPasswordLabel;
     case "webauthn":
-      return copy.passkeyLabel;
+      return challengeParameter(challenge, "ceremony") === "registration"
+        ? copy.passkeySetupLabel
+        : copy.passkeyChallengeTitle;
     case "mfa_selection":
       return "Choose a verification method";
     case "mfa_setup":
       return "Set up an authenticator";
+    case "software_token_mfa":
+      return challengeParameter(challenge, "method") === "totp_or_recovery"
+        ? copy.totpOrRecoveryCodeLabel
+        : copy.codeLabel;
     default:
       return copy.codeLabel;
   }

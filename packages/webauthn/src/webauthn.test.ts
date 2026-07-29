@@ -147,6 +147,34 @@ describe("WebAuthn middleware", () => {
     );
   });
 
+  it("binds registration challenges to the expected signed-in user", async () => {
+    const fixture = await createFixture();
+    const registration =
+      await fixture.auth.providers.webauthn.startRegistration({
+        userId: user.id,
+        userName: user.email,
+        displayName: "Person",
+      });
+    if (registration.status !== "webauthn_challenge_required") {
+      assert.fail("Expected a registration challenge.");
+    }
+
+    await assert.rejects(
+      fixture.auth.providers.webauthn.finishRegistration({
+        token: registration.challenge.continuationToken,
+        response: {
+          credentialId: "unused",
+          clientDataJSON: "unused",
+          attestationObject: "unused",
+        },
+        expectedUserId: "another-user",
+      }),
+      (error) =>
+        error instanceof AuthError && error.code === "challenge_mismatch",
+    );
+    assert.equal(fixture.credentials.size, 0);
+  });
+
   it("rejects a cloned or replayed signature counter", async () => {
     const fixture = await createFixture();
     await registerFixture(fixture);

@@ -61,6 +61,7 @@ export interface WebAuthnOperations<User extends AuthUser> {
   finishRegistration(input: {
     readonly token: string;
     readonly response: WebAuthnRegistrationResponse;
+    readonly expectedUserId?: string;
   }): Promise<AuthFlowResult<User>>;
   startAuthentication(userId?: string): Promise<AuthFlowResult<User>>;
   finishAuthentication(input: {

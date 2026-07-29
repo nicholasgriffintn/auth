@@ -24,3 +24,8 @@ const auth = baseAuth.use(
 The service implements `PasswordStore` and delivery callbacks. Enforce email
 uniqueness atomically and rate-limit every public operation. Unknown users and
 incorrect passwords produce the same public credential error.
+
+Use `verifyCredentials()` when another factor must complete before issuing a
+session. Unlike `signIn()`, it validates the password and returns the user
+without creating an authenticated session. The caller must enforce email
+verification and other account-state policies before continuing.

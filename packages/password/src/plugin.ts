@@ -11,6 +11,7 @@ import {
   resetPassword,
   signIn,
   signUp,
+  verifyCredentials,
   verifyEmail,
   type PasswordRuntime,
 } from "./flows.js";
@@ -33,6 +34,7 @@ export function passwordAuth<User extends AuthUser>(
         policy: config.policy ?? defaultPasswordPolicy,
       };
       return {
+        verifyCredentials: (input) => verifyCredentials(runtime, input),
         signUp: (input) => signUp(runtime, input),
         signIn: (input) => signIn(runtime, input),
         verifyEmail: (input) => verifyEmail(runtime, input.token),

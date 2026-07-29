@@ -205,6 +205,28 @@ describe("OTP primitives", () => {
       })
     );
 
+    const mismatchedSetup = await auth.providers.otp.startSetup({
+      userId: user.id,
+      accountName: user.email,
+    });
+    if (mismatchedSetup.status !== "mfa_setup_required") {
+      throw new Error("Expected MFA setup.");
+    }
+    const mismatchedSecret = new URL(
+      String(mismatchedSetup.challenge.parameters?.uri),
+    ).searchParams.get("secret");
+    assert.ok(mismatchedSecret);
+    await assert.rejects(
+      auth.providers.otp.verifySetup({
+        token: mismatchedSetup.challenge.continuationToken,
+        code: await generateTotp(decodeBase32(mismatchedSecret), now),
+        expectedUserId: "another-user",
+      }),
+      (error) =>
+        error instanceof AuthError && error.code === "challenge_mismatch",
+    );
+    assert.equal(credential, null);
+
     const setup = await auth.providers.otp.startSetup({
       userId: user.id,
       accountName: user.email,

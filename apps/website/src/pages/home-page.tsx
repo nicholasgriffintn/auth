@@ -6,7 +6,7 @@ export function HomePage(): React.JSX.Element {
     <main>
       <section className="hero section-shell">
         <div className="hero-copy">
-          <h1>Simple. Extendable. Auth.</h1>
+          <h1>Simple. Extensible. Auth.</h1>
           <p>
             A focused TypeScript toolkit for sessions, challenge flows, OAuth,
             passkeys and MFA. Choose the capabilities you need. Keep your
@@ -41,11 +41,11 @@ export function HomePage(): React.JSX.Element {
 
       <section className="section-shell composition-section">
         <div className="section-heading">
-          <h2>One base. Only the auth you choose.</h2>
+          <h2>One base. Only the auth you need.</h2>
           <p>
             Start with shared context and storage contracts, then layer in
-            middleware. Providers extend the configured instance with typed
-            operations.
+            middleware. Each provider extends your configured instance with
+            typed operations.
           </p>
         </div>
         <div className="architecture-map">
@@ -113,7 +113,7 @@ export function HomePage(): React.JSX.Element {
         <div className="provider-band-copy">
           <h2>Providers are data, not architecture.</h2>
           <p>
-            Install a maintained definition, supply credentials and map the
+            Install a maintained provider package, supply credentials and map the
             provider profile into your own identity model.
           </p>
           <a className="text-link" href="/docs#providers">
@@ -137,8 +137,8 @@ export function HomePage(): React.JSX.Element {
       </section>
 
       <section className="section-shell closing-section">
-        <PackageMark kind="ui" label="Build the boundary once" />
-        <h2>Bring your model. Leave with a typed auth layer.</h2>
+        <PackageMark kind="ui" label="Build your auth boundary once" />
+        <h2>Bring your model. Get a typed auth layer</h2>
         <div className="button-row">
           <a className="button" href="/docs">
             Explore every package

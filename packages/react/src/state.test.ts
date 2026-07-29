@@ -52,4 +52,47 @@ describe("authentication UI state", () => {
     assert.equal(state.view, "sign_up");
     assert.equal(state.status, "Authentication step completed.");
   });
+
+  it("leaves an enrolment challenge after authentication succeeds", () => {
+    const state = authStateReducer(
+      {
+        view: "challenge",
+        challenge: {
+          kind: "mfa_setup",
+          continuationToken: "opaque",
+          expiresAt: "2026-01-01T00:10:00.000Z",
+        },
+        submitting: true,
+      },
+      {
+        type: "result",
+        result: { status: "authenticated" },
+      },
+    );
+
+    assert.deepEqual(state, {
+      view: "sign_in",
+      submitting: false,
+      status: "Authentication complete.",
+    });
+  });
+
+  it("switches to a server-issued fallback challenge", () => {
+    const challenge = {
+      kind: "software_token_mfa" as const,
+      continuationToken: "otp-token",
+      expiresAt: "2026-01-01T00:10:00.000Z",
+    };
+    assert.deepEqual(
+      authStateReducer(
+        { view: "challenge", submitting: true },
+        { type: "challenge", challenge },
+      ),
+      {
+        view: "challenge",
+        challenge,
+        submitting: false,
+      },
+    );
+  });
 });

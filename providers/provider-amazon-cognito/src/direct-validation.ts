@@ -1,5 +1,6 @@
 import {
   AuthError,
+  isRecord,
   type AuthUser,
 } from "@ngriffin_uk/auth-core";
 import type { JwtClaims } from "@ngriffin_uk/auth-jwt";
@@ -193,10 +194,6 @@ export function hasRequiredTokenTimes(claims: JwtClaims): boolean {
     typeof claims.iat === "number" &&
     Number.isFinite(claims.iat)
   );
-}
-
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function withOptional<Key extends string, Value>(
