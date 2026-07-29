@@ -1,0 +1,10 @@
+{
+  "name": "@ngriffin_uk/auth",
+  "version": "1.0.0",
+  "description": "A reusable auth system for my applications",
+  "scripts": {},
+  "keywords": [],
+  "author": "Nicholas Griffin",
+  "license": "Apache 2.0",
+  "devDependencies": {}
+}
