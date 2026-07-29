@@ -1,5 +1,9 @@
 # Auth
 
+<p align="center">
+  <img src="./assets/auth-logo.png" alt="Auth logo" width="220">
+</p>
+
 Reusable authentication packages for backend services and React applications.
 The backend owns authentication flows; each consuming service owns its
 database, cookies, HTTP routes, redirects, secrets, and domain user model.
