@@ -1,8 +1,14 @@
 {
-  "name": "@ngriffin_uk/auth",
-  "version": "1.0.0",
+  "name": "@ngriffin_uk/auth-workspace",
+  "version": "0.0.0",
+  "private": true,
   "description": "A reusable auth system for my applications",
+  "packageManager": "pnpm@11.18.0",
   "scripts": {
+    "build": "pnpm -r --if-present build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "check": "pnpm typecheck && pnpm test && pnpm build",
     "changeset:generate": "pnpm changeset",
     "changeset:version": "pnpm changeset version",
     "publish": "pnpm publish -r"
@@ -11,6 +17,10 @@
   "author": "Nicholas Griffin",
   "license": "Apache 2.0",
   "devDependencies": {
-    "@changesets/cli": "^2.31.1"
+    "@changesets/cli": "^2.31.1",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.17",
+    "react": "^19.2.8",
+    "typescript": "^7.0.2"
   }
 }
