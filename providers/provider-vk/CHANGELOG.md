@@ -1,5 +1,14 @@
 # @ngriffin_uk/auth-provider-vk
 
+## 3.0.1
+
+### Patch Changes
+
+- chore: bump
+- Updated dependencies
+  - @ngriffin_uk/auth-core@0.4.1
+  - @ngriffin_uk/auth-oauth2@3.0.2
+
 ## 3.0.0
 
 ### Patch Changes

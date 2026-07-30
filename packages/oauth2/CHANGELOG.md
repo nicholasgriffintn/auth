@@ -1,5 +1,17 @@
 # @ngriffin_uk/auth-oauth2
 
+## 3.0.2
+
+### Patch Changes
+
+- chore: bump
+- Updated dependencies
+  - @ngriffin_uk/auth-core@0.4.1
+  - @ngriffin_uk/auth-crypto@1.0.2
+  - @ngriffin_uk/auth-encoding@0.2.3
+  - @ngriffin_uk/auth-jwt@1.1.2
+  - @ngriffin_uk/auth-request@0.2.3
+
 ## 3.0.1
 
 ### Patch Changes

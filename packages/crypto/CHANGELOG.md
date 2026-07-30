@@ -1,5 +1,13 @@
 # @ngriffin_uk/auth-crypto
 
+## 1.0.2
+
+### Patch Changes
+
+- chore: bump
+- Updated dependencies
+  - @ngriffin_uk/auth-encoding@0.2.3
+
 ## 1.0.1
 
 ### Patch Changes

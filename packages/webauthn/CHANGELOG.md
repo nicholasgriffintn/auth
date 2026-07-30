@@ -1,5 +1,15 @@
 # @ngriffin_uk/auth-webauthn
 
+## 0.4.1
+
+### Patch Changes
+
+- chore: bump
+- Updated dependencies
+  - @ngriffin_uk/auth-core@0.4.1
+  - @ngriffin_uk/auth-crypto@1.0.2
+  - @ngriffin_uk/auth-encoding@0.2.3
+
 ## 0.4.0
 
 ### Minor Changes

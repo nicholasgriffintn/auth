@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-core",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Runtime-neutral authentication context and storage contracts",
   "type": "module",
   "sideEffects": false,

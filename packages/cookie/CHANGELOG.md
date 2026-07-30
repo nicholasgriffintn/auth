@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-cookie
 
+## 0.2.3
+
+### Patch Changes
+
+- chore: bump
+
 ## 0.2.2
 
 ### Patch Changes

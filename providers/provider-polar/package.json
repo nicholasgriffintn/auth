@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-provider-polar",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "polar authentication provider for @ngriffin_uk/auth-core",
   "type": "module",
   "sideEffects": false,
@@ -20,8 +20,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {
-    "@ngriffin_uk/auth-core": "^0.4.0",
-    "@ngriffin_uk/auth-oauth2": "^3.0.1"
+    "@ngriffin_uk/auth-core": "^0.4.1",
+    "@ngriffin_uk/auth-oauth2": "^3.0.2"
   },
   "devDependencies": {
     "@ngriffin_uk/auth-core": "workspace:*",

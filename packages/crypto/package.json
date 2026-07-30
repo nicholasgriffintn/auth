@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-crypto",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Runtime-neutral authentication cryptography primitives",
   "type": "module",
   "sideEffects": false,
@@ -21,7 +21,7 @@
     "test": "tsc -p tsconfig.test.json && node --test .test-dist/**/*.test.js"
   },
   "peerDependencies": {
-    "@ngriffin_uk/auth-encoding": "^0.2.2"
+    "@ngriffin_uk/auth-encoding": "^0.2.3"
   },
   "devDependencies": {
     "@ngriffin_uk/auth-encoding": "workspace:*"
