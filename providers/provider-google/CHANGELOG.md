@@ -1,5 +1,13 @@
 # @ngriffin_uk/auth-provider-google
 
+## 3.0.0
+
+### Patch Changes
+
+- Updated dependencies [440ac6b]
+  - @ngriffin_uk/auth-oauth2@3.0.0
+  - @ngriffin_uk/auth-core@0.4.0
+
 ## 2.0.0
 
 ### Patch Changes

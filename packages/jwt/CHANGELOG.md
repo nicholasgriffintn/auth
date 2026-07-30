@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-jwt
 
+## 1.1.0
+
+### Minor Changes
+
+- 440ac6b: feat: adjusting auth flows
+
 ## 1.0.2
 
 ### Patch Changes

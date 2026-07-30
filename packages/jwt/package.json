@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-jwt",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "JWT signing, verification, claim validation, and JWK selection",
   "type": "module",
   "sideEffects": false,

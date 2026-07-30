@@ -1,5 +1,16 @@
 # @ngriffin_uk/auth-webauthn
 
+## 0.4.0
+
+### Minor Changes
+
+- 440ac6b: feat: adjusting auth flows
+
+### Patch Changes
+
+- Updated dependencies [440ac6b]
+  - @ngriffin_uk/auth-core@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

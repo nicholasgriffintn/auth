@@ -1,5 +1,18 @@
 # @ngriffin_uk/auth-provider-amazon-cognito
 
+## 3.0.0
+
+### Minor Changes
+
+- 440ac6b: feat: adjusting auth flows
+
+### Patch Changes
+
+- Updated dependencies [440ac6b]
+  - @ngriffin_uk/auth-oauth2@3.0.0
+  - @ngriffin_uk/auth-core@0.4.0
+  - @ngriffin_uk/auth-jwt@1.1.0
+
 ## 2.0.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-core
 
+## 0.4.0
+
+### Minor Changes
+
+- 440ac6b: feat: adjusting auth flows
+
 ## 0.3.0
 
 ### Minor Changes
