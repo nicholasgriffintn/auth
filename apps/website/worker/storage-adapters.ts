@@ -1,5 +1,6 @@
 import {
   createAuth,
+  type AuthChallengeRecord,
   type ChallengeStore,
   type IdentityStore,
   type SessionStore,
@@ -10,7 +11,7 @@ import type { OtpStore } from "@ngriffin_uk/auth-otp";
 import type { PasswordStore } from "@ngriffin_uk/auth-password";
 import type { WebAuthnStore } from "@ngriffin_uk/auth-webauthn";
 
-import type { AuthStore } from "./auth-store";
+import type { AuthStore, StoredChallengeRecord } from "./auth-store";
 import type { AuthEncryption } from "./encryption";
 import type { DemoUser } from "./types";
 
@@ -90,23 +91,15 @@ export function createChallengeStore(
     async consumeByTokenHash(tokenHash) {
       const challenge = await store.consumeChallenge(tokenHash);
       if (!challenge) return null;
-      return {
-        tokenHash: challenge.tokenHash,
-        provider: challenge.provider,
-        kind: challenge.kind,
-        payload: await encryption.decryptJson(
-          challenge.payload,
-          challengeContext(
-            challenge.tokenHash,
-            challenge.provider,
-            challenge.kind,
-          ),
-        ),
-        createdAt: challenge.createdAt,
-        expiresAt: challenge.expiresAt,
-        attempts: challenge.attempts,
-      };
+      return decryptChallenge(challenge, encryption);
     },
+    async findByTokenHash(tokenHash) {
+      const challenge = await store.findChallenge(tokenHash);
+      if (!challenge) return null;
+      return decryptChallenge(challenge, encryption);
+    },
+    incrementAttempts: (tokenHash, expectedAttempts) =>
+      store.incrementChallengeAttempts(tokenHash, expectedAttempts),
   };
 }
 
@@ -166,6 +159,28 @@ function challengeContext(
   kind: string,
 ): string {
   return `challenge:${tokenHash}:${provider}:${kind}`;
+}
+
+async function decryptChallenge(
+  challenge: StoredChallengeRecord,
+  encryption: AuthEncryption,
+): Promise<AuthChallengeRecord> {
+  return {
+    tokenHash: challenge.tokenHash,
+    provider: challenge.provider,
+    kind: challenge.kind,
+    payload: await encryption.decryptJson(
+      challenge.payload,
+      challengeContext(
+        challenge.tokenHash,
+        challenge.provider,
+        challenge.kind,
+      ),
+    ),
+    createdAt: challenge.createdAt,
+    expiresAt: challenge.expiresAt,
+    attempts: challenge.attempts,
+  };
 }
 
 function otpContext(userId: string): string {

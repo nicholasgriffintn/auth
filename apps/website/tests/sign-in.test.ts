@@ -15,6 +15,7 @@ import {
   startPasswordSignIn,
 } from "../worker/sign-in.ts";
 import { demoPasswordHasher } from "../worker/password.ts";
+import type { StoredChallengeRecord } from "../worker/auth-store.ts";
 
 const user = {
   id: "user-1",
@@ -225,7 +226,7 @@ async function signInFixture(input: {
   );
   let recoveryCodeAvailable = true;
   let sessions = 0;
-  const challenges = new Map<string, unknown>();
+  const challenges = new Map<string, StoredChallengeRecord>();
   const store = {
     async findPasswordAccountByEmail(email: string) {
       return email === user.email
@@ -248,13 +249,28 @@ async function signInFixture(input: {
       return null;
     },
     async deleteSession() {},
-    async createChallenge(challenge: { readonly tokenHash: string }) {
+    async createChallenge(challenge: StoredChallengeRecord) {
       challenges.set(challenge.tokenHash, challenge);
+    },
+    async findChallenge(tokenHash: string) {
+      return challenges.get(tokenHash) ?? null;
     },
     async consumeChallenge(tokenHash: string) {
       const challenge = challenges.get(tokenHash) ?? null;
       challenges.delete(tokenHash);
       return challenge;
+    },
+    async incrementChallengeAttempts(
+      tokenHash: string,
+      expectedAttempts: number,
+    ) {
+      const challenge = challenges.get(tokenHash);
+      if (!challenge || challenge.attempts !== expectedAttempts) return false;
+      challenges.set(tokenHash, {
+        ...challenge,
+        attempts: challenge.attempts + 1,
+      });
+      return true;
     },
     async hasOtpCredential() {
       return input.totp;

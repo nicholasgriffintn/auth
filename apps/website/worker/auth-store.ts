@@ -403,6 +403,32 @@ export class AuthStore extends DurableObject<Env> {
     return record;
   }
 
+  findChallenge(tokenHash: string): StoredChallengeRecord | null {
+    this.deleteExpired();
+    const row = first(
+      this.ctx.storage.sql.exec<ChallengeRow>(
+        "SELECT * FROM auth_challenges WHERE token_hash = ? LIMIT 1",
+        tokenHash,
+      ),
+    );
+    return row ? mapChallenge(row) : null;
+  }
+
+  incrementChallengeAttempts(
+    tokenHash: string,
+    expectedAttempts: number,
+  ): boolean {
+    this.deleteExpired();
+    const result = this.ctx.storage.sql.exec(
+      `UPDATE auth_challenges
+       SET attempts = attempts + 1
+       WHERE token_hash = ? AND attempts = ?`,
+      tokenHash,
+      expectedAttempts,
+    );
+    return result.rowsWritten === 1;
+  }
+
   saveOtpCredential(credential: StoredOtpCredential): void {
     this.ctx.storage.sql.exec(
       `INSERT INTO otp_credentials
