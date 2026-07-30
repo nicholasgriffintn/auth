@@ -3,6 +3,7 @@ import { useAuth } from "./context.js";
 import {
   ChallengeScreen,
   RecoveryScreen,
+  RecoveryCodesScreen,
   SignInScreen,
   SignUpScreen,
 } from "./screens.js";
@@ -22,6 +23,8 @@ export function AuthFlow({ className: customClassName }: { readonly className?: 
         <SignUpScreen />
       ) : state.view === "forgot_password" ? (
         <RecoveryScreen />
+      ) : state.view === "recovery_codes" ? (
+        <RecoveryCodesScreen />
       ) : (
         <ChallengeScreen />
       )}

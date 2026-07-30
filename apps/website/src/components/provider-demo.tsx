@@ -152,11 +152,6 @@ export function ProviderDemo(): React.JSX.Element {
           setSecurity(await getDemoSecurity());
         },
         onRedirect: (url) => window.location.assign(url),
-        renderTotpQrCode: (uri) => (
-          <a className="text-link" href={uri}>
-            Open in your authenticator app
-          </a>
-        ),
         resolveWebAuthn: resolveWebAuthnChallenge,
       }}
     >

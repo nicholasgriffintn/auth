@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-provider-amazon-cognito
 
+## 3.1.0
+
+### Minor Changes
+
+- feat: expanding react views and cognito
+
 ## 3.0.3
 
 ### Patch Changes

@@ -6,6 +6,8 @@ import type {
   AuthProviderConfig,
   ResolvedAuthUiConfig
 } from './types.js'
+import { createBrowserAuthTransport } from './browser-transport.js'
+import { resolveBrowserWebAuthn } from './browser-webauthn.js'
 
 export const DEFAULT_COPY: AuthCopy = {
   signInTitle: 'Sign in',
@@ -34,7 +36,10 @@ export const DEFAULT_COPY: AuthCopy = {
   totpOrRecoveryLabel: 'Use an authenticator or recovery code',
   totpOrRecoveryCodeLabel: 'Authenticator or recovery code',
   totpOrRecoveryDescription: 'Enter the six-digit code or one of your saved recovery codes.',
+  recoveryCodesTitle: 'Recovery codes',
   recoveryCodesLabel: 'Save these recovery codes somewhere safe. Each code can be used once.',
+  recoveryCodesCopyLabel: 'Copy recovery codes',
+  recoveryCodesDownloadLabel: 'Download recovery codes',
   cancelLabel: 'Cancel',
   resendLabel: 'Resend code',
   genericError: 'Authentication could not be completed.',
@@ -100,6 +105,12 @@ export const DEFAULT_SIGN_UP_FIELDS: readonly AuthField[] = [
 export function resolveConfig<User>(config: AuthProviderConfig<User>) {
   return {
     ...config,
+    transport:
+      config.transport ??
+      createBrowserAuthTransport<User>(
+        config.endpoint ? { endpoint: config.endpoint } : undefined
+      ),
+    resolveWebAuthn: config.resolveWebAuthn ?? resolveBrowserWebAuthn,
     capabilities: {
       ...DEFAULT_CAPABILITIES,
       ...config.capabilities
@@ -118,6 +129,10 @@ export function className(config: Pick<AuthProviderConfig, 'classNames'>, key: A
   return config.classNames?.[key] ?? `auth-${toKebabCase(key)}`
 }
 
+export function combineClassNames(...values: readonly (string | undefined)[]): string {
+  return values.filter((value) => value !== undefined && value.length > 0).join(' ')
+}
+
 export function uiConfig<User>(config: ReturnType<typeof resolveConfig<User>>): ResolvedAuthUiConfig {
   return {
     capabilities: config.capabilities,
@@ -126,10 +141,7 @@ export function uiConfig<User>(config: ReturnType<typeof resolveConfig<User>>): 
     signInFields: config.signInFields,
     signUpFields: config.signUpFields,
     ...(config.classNames ? { classNames: config.classNames } : {}),
-    ...(config.renderProviderIcon ? { renderProviderIcon: config.renderProviderIcon } : {}),
-    ...(config.renderTotpQrCode ? { renderTotpQrCode: config.renderTotpQrCode } : {}),
-    ...(config.renderUnsupportedChallenge ? { renderUnsupportedChallenge: config.renderUnsupportedChallenge } : {}),
-    ...(config.resolveWebAuthn ? { resolveWebAuthn: config.resolveWebAuthn } : {})
+    resolveWebAuthn: config.resolveWebAuthn
   }
 }
 

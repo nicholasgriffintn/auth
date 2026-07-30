@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-react
 
+## 0.5.0
+
+### Minor Changes
+
+- feat: expanding react views and cognito
+
 ## 0.4.2
 
 ### Patch Changes

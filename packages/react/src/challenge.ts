@@ -3,6 +3,24 @@ import type {
   AuthClientChallenge,
 } from "./types.js";
 
+export function challengeStringParameters(
+  challenge: AuthClientChallenge
+): Readonly<Record<string, string>> {
+  return Object.fromEntries(
+    Object.entries(challenge.parameters ?? {}).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string"
+    )
+  );
+}
+
+export function challengeParameter(
+  challenge: AuthClientChallenge,
+  name: string
+): string | undefined {
+  const value = challenge.parameters?.[name];
+  return typeof value === "string" ? value : undefined;
+}
+
 export function alternativeAuthChallenge(
   challenge: AuthClientChallenge
 ): AuthClientChallenge | null {

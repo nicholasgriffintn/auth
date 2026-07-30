@@ -877,7 +877,8 @@ button.button:disabled {
   margin-bottom: 22px;
 }
 
-[data-auth-totp-setup] .text-link {
+.auth-totp-qr-code {
+  display: block;
   margin-bottom: 16px;
 }
 

@@ -1,9 +1,24 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { authStateReducer, INITIAL_AUTH_STATE } from './state.js'
+import {
+  authStateReducer,
+  createInitialAuthState,
+  INITIAL_AUTH_STATE
+} from './state.js'
 
 describe('authentication UI state', () => {
+  it('starts with a service-provided error from a completed redirect', () => {
+    assert.deepEqual(
+      createInitialAuthState('Authentication could not be completed.'),
+      {
+        view: 'sign_in',
+        submitting: false,
+        error: 'Authentication could not be completed.'
+      }
+    )
+  })
+
   it('moves shared challenge results into the challenge view', () => {
     const state = authStateReducer(INITIAL_AUTH_STATE, {
       type: 'result',
@@ -62,7 +77,7 @@ describe('authentication UI state', () => {
     assert.equal(state.status, 'Check your email for a sign-in link.')
   })
 
-  it('leaves an enrolment challenge after authentication succeeds', () => {
+    it('leaves an enrolment challenge after authentication succeeds', () => {
     const state = authStateReducer(
       {
         view: 'challenge',
@@ -84,6 +99,18 @@ describe('authentication UI state', () => {
       submitting: false,
       status: 'Authentication complete.'
     })
+
+  })
+
+  it('shows newly issued recovery codes before authentication completes', () => {
+    const state = authStateReducer(INITIAL_AUTH_STATE, {
+      type: 'result',
+      result: {
+        status: 'authenticated',
+        recoveryCodes: ['one', 'two']
+      }
+    })
+    assert.equal(state.view, 'recovery_codes')
   })
 
   it('switches to a server-issued fallback challenge', () => {

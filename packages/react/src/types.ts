@@ -26,6 +26,7 @@ export type AuthClientResult<User = unknown> =
   | {
       readonly status: 'authenticated'
       readonly user?: User
+      readonly recoveryCodes?: readonly string[]
     }
   | {
       readonly status:
@@ -67,6 +68,12 @@ export type AuthRequest =
   | {
       readonly action: 'start_oauth'
       readonly provider: string
+      readonly values?: Readonly<Record<string, string>>
+    }
+  | {
+      readonly action: 'sign_in_direct'
+      readonly provider: string
+      readonly values: Readonly<Record<string, string>>
     }
   | {
       readonly action: 'start_passkey'
@@ -92,12 +99,18 @@ export interface AuthTransport<User = unknown> {
   execute(request: AuthRequest): Promise<AuthClientResult<User>>
 }
 
-export type AuthView = 'challenge' | 'forgot_password' | 'sign_in' | 'sign_up'
+export type AuthView =
+  | 'challenge'
+  | 'forgot_password'
+  | 'recovery_codes'
+  | 'sign_in'
+  | 'sign_up'
 
 export interface AuthField {
   readonly name: string
   readonly label: string
-  readonly type?: 'checkbox' | 'email' | 'password' | 'text'
+  readonly type?: 'checkbox' | 'email' | 'password' | 'select' | 'text'
+  readonly options?: readonly AuthFieldOption[]
   readonly autoComplete?: string
   readonly inputMode?: 'email' | 'numeric' | 'text'
   readonly placeholder?: string
@@ -110,10 +123,24 @@ export interface AuthField {
   readonly validate?: (value: string | boolean, values: Readonly<Record<string, string | boolean>>) => string | null
 }
 
+export interface AuthFieldOption {
+  readonly label: string
+  readonly value: string
+}
+
 export interface ExternalAuthProvider {
   readonly id: string
   readonly label: string
   readonly icon?: ReactNode
+  readonly strategy?: 'apple_direct' | 'oauth'
+  readonly clientId?: string
+  readonly redirectUri?: string
+  readonly scope?: string
+  readonly className?: string
+  readonly fields?: readonly AuthField[]
+  readonly values?: Readonly<Record<string, string>>
+  readonly separatorBefore?: string
+  readonly submitLabel?: string
 }
 
 export interface AuthCapabilities {
@@ -152,7 +179,10 @@ export interface AuthCopy {
   readonly totpOrRecoveryLabel: string
   readonly totpOrRecoveryCodeLabel: string
   readonly totpOrRecoveryDescription: string
+  readonly recoveryCodesTitle: string
   readonly recoveryCodesLabel: string
+  readonly recoveryCodesCopyLabel: string
+  readonly recoveryCodesDownloadLabel: string
   readonly cancelLabel: string
   readonly resendLabel: string
   readonly genericError: string
@@ -162,12 +192,15 @@ export interface AuthCopy {
 export interface AuthAnalyticsEvent {
   readonly name: 'authenticated' | 'error' | 'redirect' | 'request' | 'view'
   readonly action?: AuthRequest['action']
+  readonly provider?: string
   readonly status?: AuthClientResult['status']
   readonly view?: AuthView
 }
 
 export interface AuthProviderConfig<User = unknown> {
-  readonly transport: AuthTransport<User>
+  readonly transport?: AuthTransport<User>
+  readonly endpoint?: string
+  readonly initialError?: string
   readonly capabilities?: AuthCapabilities
   readonly providers?: readonly ExternalAuthProvider[]
   readonly signInFields?: readonly AuthField[]
@@ -179,14 +212,12 @@ export interface AuthProviderConfig<User = unknown> {
   readonly onRedirect?: (url: string, provider: string) => void | Promise<void>
   readonly onAnalytics?: (event: AuthAnalyticsEvent) => void
   readonly resolveWebAuthn?: (challenge: AuthClientChallenge) => Promise<Readonly<Record<string, string>>>
-  readonly renderProviderIcon?: (provider: ExternalAuthProvider) => ReactNode
-  readonly renderTotpQrCode?: (uri: string) => ReactNode
-  readonly renderUnsupportedChallenge?: (challenge: AuthClientChallenge) => ReactNode
 }
 
 export type ResolvedAuthUiConfig = Pick<
   AuthProviderConfig,
-  'classNames' | 'renderProviderIcon' | 'renderTotpQrCode' | 'renderUnsupportedChallenge' | 'resolveWebAuthn'
+  | 'classNames'
+  | 'resolveWebAuthn'
 > & {
   readonly capabilities: Required<AuthCapabilities>
   readonly providers: readonly ExternalAuthProvider[]
@@ -210,7 +241,10 @@ export type AuthClassName =
   | 'providerButton'
   | 'providerList'
   | 'recoveryCodes'
+  | 'recoveryCodesActions'
   | 'securityItem'
   | 'securityList'
+  | 'separator'
   | 'status'
   | 'title'
+  | 'totpQrCode'

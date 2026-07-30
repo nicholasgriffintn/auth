@@ -85,6 +85,35 @@ export function DynamicAuthForm({
                 />
                 {field.label}
               </label>
+            ) : type === "select" ? (
+              <>
+                <label className={className(config, "label")} htmlFor={id}>
+                  {field.label}
+                </label>
+                <select
+                  aria-describedby={field.description ? errorId : undefined}
+                  autoFocus={index === 0}
+                  className={className(config, "input")}
+                  disabled={submitting}
+                  id={id}
+                  name={field.name}
+                  onChange={(event) =>
+                    setValues((current) => ({
+                      ...current,
+                      [field.name]: event.target.value,
+                    }))
+                  }
+                  required={field.required}
+                  value={String(values[field.name] ?? "")}
+                >
+                  <option value="">{field.placeholder ?? `Choose ${field.label}`}</option>
+                  {field.options?.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </>
             ) : (
               <>
                 <label className={className(config, "label")} htmlFor={id}>

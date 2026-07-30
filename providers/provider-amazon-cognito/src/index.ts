@@ -2,7 +2,6 @@ import type { AuthPlugin, AuthUser } from "@ngriffin_uk/auth-core";
 import {
   createOAuthProvider,
   defineOAuthProvider,
-  joinProviderUrl,
   providerDomainUrl,
   type OAuthOperations,
   type OAuthProviderPluginOptions,

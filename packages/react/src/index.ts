@@ -1,4 +1,6 @@
 export * from "./auth-flow.js";
+export * from "./browser-transport.js";
+export * from "./browser-webauthn.js";
 export * from "./challenge.js";
 export * from "./config.js";
 export * from "./context.js";

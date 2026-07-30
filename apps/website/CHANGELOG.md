@@ -1,5 +1,17 @@
 # @ngriffin_uk/auth-website
 
+## 0.3.0
+
+### Minor Changes
+
+- feat: expanding react views and cognito
+
+### Patch Changes
+
+- Updated dependencies
+  - @ngriffin_uk/auth-provider-amazon-cognito@3.1.0
+  - @ngriffin_uk/auth-react@0.5.0
+
 ## 0.2.3
 
 ### Patch Changes

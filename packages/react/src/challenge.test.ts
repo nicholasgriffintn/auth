@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { alternativeAuthChallenge } from "./challenge.js";
+import {
+  alternativeAuthChallenge,
+  challengeStringParameters,
+} from "./challenge.js";
 
 test("resolves a server-issued fallback authentication challenge", () => {
   assert.deepEqual(
@@ -21,6 +24,25 @@ test("resolves a server-issued fallback authentication challenge", () => {
       continuationToken: "otp-token",
       expiresAt: "2026-01-01T00:10:00.000Z",
       parameters: { method: "totp_or_recovery" },
+    }
+  );
+});
+
+test("carries server challenge context into continuation requests", () => {
+  assert.deepEqual(
+    challengeStringParameters({
+      kind: "webauthn",
+      continuationToken: "challenge-token",
+      expiresAt: "2026-07-30T12:00:00.000Z",
+      parameters: {
+        ceremony: "registration",
+        selectionToken: "selection-token",
+        algorithms: ["ES256"],
+      },
+    }),
+    {
+      ceremony: "registration",
+      selectionToken: "selection-token",
     }
   );
 });

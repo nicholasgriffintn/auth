@@ -96,8 +96,8 @@ import { AuthFlow, AuthProvider } from '@ngriffin_uk/auth-react'
 ```
 
 Components ship without CSS. Use the `auth-*` classes, `data-auth-view`,
-`data-auth-screen`, and `data-auth-challenge` attributes, or provide custom
-class names and render hooks.
+`data-auth-screen`, and `data-auth-challenge` attributes, or provide class
+names through `AuthProviderConfig`.
 
 ## Development and publishing
 
@@ -105,8 +105,11 @@ class names and render hooks.
 pnpm check
 pnpm changeset
 pnpm changeset version
-pnpm publish -r
+pnpm run publish
 ```
+
+`pnpm run publish` builds every package before publishing it. Do not run
+`pnpm publish -r` directly because that bypasses the workspace build.
 
 See each package README for its public entry points and required service
 contracts. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) for acknowledgements.

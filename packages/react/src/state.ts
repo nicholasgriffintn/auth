@@ -9,7 +9,10 @@ export interface AuthState {
 }
 
 export type AuthStateAction =
-  | { readonly type: 'navigate'; readonly view: Exclude<AuthView, 'challenge'> }
+  | {
+      readonly type: 'navigate'
+      readonly view: Exclude<AuthView, 'challenge' | 'recovery_codes'>
+    }
   | { readonly type: 'challenge'; readonly challenge: AuthClientChallenge }
   | { readonly type: 'submit' }
   | { readonly type: 'error'; readonly message: string }
@@ -19,6 +22,10 @@ export type AuthStateAction =
 export const INITIAL_AUTH_STATE: AuthState = {
   view: 'sign_in',
   submitting: false
+}
+
+export function createInitialAuthState(error?: string): AuthState {
+  return error ? { ...INITIAL_AUTH_STATE, error } : INITIAL_AUTH_STATE
 }
 
 export function authStateReducer(state: AuthState, action: AuthStateAction): AuthState {
@@ -78,6 +85,12 @@ function stateFromResult(state: AuthState, result: AuthClientResult): AuthState 
     }
   }
   if (result.status === 'authenticated') {
+    if (result.recoveryCodes?.length) {
+      return {
+        view: 'recovery_codes',
+        submitting: false
+      }
+    }
     return {
       view: 'sign_in',
       submitting: false,
