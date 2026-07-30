@@ -82,7 +82,7 @@ export class CognitoClient {
             "X-Amz-Target": `AWSCognitoIdentityProviderService.${operation}`,
           },
           body: JSON.stringify(body),
-          redirect: "error",
+          redirect: "manual",
         },
         this.#requestTimeoutMs
       );

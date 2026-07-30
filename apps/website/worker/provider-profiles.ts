@@ -152,7 +152,7 @@ async function requestJson(
           Authorization: `Bearer ${accessToken}`,
           ...extraHeaders,
         },
-        redirect: "error",
+        redirect: "manual",
       },
       PROFILE_TIMEOUT_MS,
     );

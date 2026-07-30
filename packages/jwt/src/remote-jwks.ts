@@ -124,7 +124,7 @@ async function fetchJwks(
       url,
       {
         headers: { Accept: "application/json" },
-        redirect: "error",
+        redirect: "manual",
       },
       timeoutMs
     );

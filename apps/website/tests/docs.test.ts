@@ -5,12 +5,12 @@ import { test } from "node:test";
 import { docs } from "../src/generated/docs.ts";
 
 test("every package and provider README is represented exactly once", async () => {
-  assert.equal(docs.length, 45);
+  assert.equal(docs.length, 46);
   assert.equal(new Set(docs.map((entry) => entry.name)).size, docs.length);
   assert.equal(new Set(docs.map((entry) => entry.url)).size, docs.length);
   assert.equal(
     docs.filter((entry) => entry.kind === "package").length,
-    12,
+    13,
   );
   assert.equal(
     docs.filter((entry) => entry.kind === "provider").length,

@@ -165,7 +165,7 @@ describe('oauth2Auth', () => {
     })
     assert.equal(result.status, 'authenticated')
     assert.match(setupResult.getTokenRequestBody(), /code_verifier=/u)
-    assert.equal(setupResult.getTokenRequestInit()?.redirect, 'error')
+    assert.equal(setupResult.getTokenRequestInit()?.redirect, 'manual')
     assert.equal(setupResult.getResolvedTokens()?.expiresAt?.toISOString(), '2026-01-01T01:00:00.000Z')
   })
 

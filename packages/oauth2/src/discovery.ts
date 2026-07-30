@@ -51,7 +51,7 @@ export async function discoverOpenIdConfiguration(
       discoveryUrl,
       {
         headers: { Accept: "application/json" },
-        redirect: "error",
+        redirect: "manual",
       },
       timeoutMs
     );

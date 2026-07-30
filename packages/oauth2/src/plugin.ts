@@ -121,7 +121,7 @@ export function oauth2Auth<const Name extends string, User extends AuthUser>(
                 method: 'POST',
                 headers: await createTokenHeaders(config, body),
                 body,
-                redirect: 'error'
+                redirect: 'manual'
               },
               TOKEN_REQUEST_TIMEOUT_MS
             )
@@ -242,7 +242,7 @@ async function sendTokenRequest<Name extends string, User extends AuthUser>(
         method: 'POST',
         headers: await createTokenHeaders(config, body),
         body,
-        redirect: 'error'
+        redirect: 'manual'
       },
       TOKEN_REQUEST_TIMEOUT_MS
     )
