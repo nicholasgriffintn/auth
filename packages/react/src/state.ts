@@ -1,109 +1,92 @@
-import type {
-  AuthClientChallenge,
-  AuthClientResult,
-  AuthView,
-} from "./types.js";
+import type { AuthClientChallenge, AuthClientResult, AuthView } from './types.js'
 
 export interface AuthState {
-  readonly view: AuthView;
-  readonly challenge?: AuthClientChallenge;
-  readonly submitting: boolean;
-  readonly error?: string;
-  readonly status?: string;
+  readonly view: AuthView
+  readonly challenge?: AuthClientChallenge
+  readonly submitting: boolean
+  readonly error?: string
+  readonly status?: string
 }
 
 export type AuthStateAction =
-  | { readonly type: "navigate"; readonly view: Exclude<AuthView, "challenge"> }
-  | { readonly type: "challenge"; readonly challenge: AuthClientChallenge }
-  | { readonly type: "submit" }
-  | { readonly type: "error"; readonly message: string }
-  | { readonly type: "result"; readonly result: AuthClientResult }
-  | { readonly type: "status"; readonly message: string };
+  | { readonly type: 'navigate'; readonly view: Exclude<AuthView, 'challenge'> }
+  | { readonly type: 'challenge'; readonly challenge: AuthClientChallenge }
+  | { readonly type: 'submit' }
+  | { readonly type: 'error'; readonly message: string }
+  | { readonly type: 'result'; readonly result: AuthClientResult }
+  | { readonly type: 'status'; readonly message: string }
 
 export const INITIAL_AUTH_STATE: AuthState = {
-  view: "sign_in",
-  submitting: false,
-};
+  view: 'sign_in',
+  submitting: false
+}
 
-export function authStateReducer(
-  state: AuthState,
-  action: AuthStateAction
-): AuthState {
+export function authStateReducer(state: AuthState, action: AuthStateAction): AuthState {
   switch (action.type) {
-    case "challenge":
+    case 'challenge':
       return {
-        view: "challenge",
+        view: 'challenge',
         challenge: action.challenge,
-        submitting: false,
-      };
-    case "navigate":
+        submitting: false
+      }
+    case 'navigate':
       return {
         view: action.view,
+        submitting: false
+      }
+    case 'submit': {
+      const { error: _error, status: _status, ...current } = state
+      return {
+        ...current,
+        submitting: true
+      }
+    }
+    case 'error': {
+      const { status: _status, ...current } = state
+      return {
+        ...current,
         submitting: false,
-      };
-    case "submit":
-      {
-        const {
-          error: _error,
-          status: _status,
-          ...current
-        } = state;
-        return {
-          ...current,
-          submitting: true,
-        };
+        error: action.message
       }
-    case "error":
-      {
-        const { status: _status, ...current } = state;
-        return {
-          ...current,
-          submitting: false,
-          error: action.message,
-        };
+    }
+    case 'status': {
+      const { error: _error, ...current } = state
+      return {
+        ...current,
+        submitting: false,
+        status: action.message
       }
-    case "status":
-      {
-        const { error: _error, ...current } = state;
-        return {
-          ...current,
-          submitting: false,
-          status: action.message,
-        };
-      }
-    case "result":
-      return stateFromResult(state, action.result);
+    }
+    case 'result':
+      return stateFromResult(state, action.result)
   }
 }
 
-function stateFromResult(
-  state: AuthState,
-  result: AuthClientResult
-): AuthState {
-  if ("challenge" in result) {
+function stateFromResult(state: AuthState, result: AuthClientResult): AuthState {
+  if ('challenge' in result) {
     return {
-      view: "challenge",
+      view: 'challenge',
       challenge: result.challenge,
-      submitting: false,
-    };
+      submitting: false
+    }
   }
-  if (result.status === "completed") {
+  if (result.status === 'completed') {
     return {
-      view: result.next ?? "sign_in",
+      view: result.next ?? 'sign_in',
       submitting: false,
-      status: "Authentication step completed.",
-    };
+      status: result.message ?? 'Authentication step completed.'
+    }
   }
-  if (result.status === "authenticated") {
+  if (result.status === 'authenticated') {
     return {
-      view: "sign_in",
+      view: 'sign_in',
       submitting: false,
-      status: "Authentication complete.",
-    };
+      status: 'Authentication complete.'
+    }
   }
-  const { error: _error, ...current } = state;
+  const { error: _error, ...current } = state
   return {
     ...current,
-    submitting: false,
-  };
+    submitting: false
+  }
 }

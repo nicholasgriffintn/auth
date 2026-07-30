@@ -4,240 +4,209 @@ import {
   requireValidDate,
   type AuthPlugin,
   type AuthSession,
-  type AuthUser,
-} from "@ngriffin_uk/auth-core";
-import { sha256 } from "@ngriffin_uk/auth-crypto";
-import { encodeBase64Url } from "@ngriffin_uk/auth-encoding";
-import { verifyJwt, type JwtClaims } from "@ngriffin_uk/auth-jwt";
-import { requestWithTimeout } from "@ngriffin_uk/auth-request";
+  type AuthUser
+} from '@ngriffin_uk/auth-core'
+import { sha256 } from '@ngriffin_uk/auth-crypto'
+import { encodeBase64Url } from '@ngriffin_uk/auth-encoding'
+import { verifyJwt, type JwtClaims } from '@ngriffin_uk/auth-jwt'
+import { requestWithTimeout } from '@ngriffin_uk/auth-request'
 
-import { encodeFormComponent } from "./encoding.js";
-import { readTokenResponse } from "./tokens.js";
+import { encodeFormComponent } from './encoding.js'
+import { readTokenResponse } from './tokens.js'
 import type {
   OAuthOperations,
   OAuthProviderConfig,
   OAuthStateRecord,
   OAuthTokenSet,
   OAuthTokenGrant,
-  StartAuthorizationOptions,
-} from "./types.js";
+  StartAuthorizationOptions
+} from './types.js'
 
-const textEncoder = new TextEncoder();
-const TOKEN_REQUEST_TIMEOUT_MS = 10_000;
+const textEncoder = new TextEncoder()
+const TOKEN_REQUEST_TIMEOUT_MS = 10_000
 const RESERVED_AUTHORIZATION_PARAMETERS = new Set([
-  "client_id",
-  "code_challenge",
-  "code_challenge_method",
-  "nonce",
-  "redirect_uri",
-  "response_type",
-  "scope",
-  "state",
-]);
+  'client_id',
+  'code_challenge',
+  'code_challenge_method',
+  'nonce',
+  'redirect_uri',
+  'response_type',
+  'scope',
+  'state'
+])
 
 export function oauth2Auth<const Name extends string, User extends AuthUser>(
   config: OAuthProviderConfig<Name, User>
 ): AuthPlugin<Name, OAuthOperations<User>, User> {
-  validateConfig(config);
+  validateConfig(config)
   return {
     name: config.name,
     install(context) {
-      const request = config.fetch ?? globalThis.fetch;
+      const request = config.fetch ?? globalThis.fetch
       if (!request) {
-        throw new AuthError("unsupported_operation", "Fetch is unavailable.");
+        throw new AuthError('unsupported_operation', 'Fetch is unavailable.')
       }
 
       return {
         async startAuthorization(options) {
-          const now = requireValidDate(
-            context.now(),
-            "OAuth clock"
-          );
-          const state = context.randomToken();
-          const codeVerifier =
-            config.pkce === false ? undefined : context.randomToken();
-          const nonce = config.oidc ? context.randomToken() : undefined;
-          const expiresAt = expirationDate(
-            now,
-            config.stateTtlMs ?? 10 * 60 * 1_000,
-            "OAuth state expiry"
-          );
+          const now = requireValidDate(context.now(), 'OAuth clock')
+          const state = context.randomToken()
+          const codeVerifier = config.pkce === false ? undefined : context.randomToken()
+          const nonce = config.oidc ? context.randomToken() : undefined
+          const expiresAt = expirationDate(now, config.stateTtlMs ?? 10 * 60 * 1_000, 'OAuth state expiry')
           const record: OAuthStateRecord = {
             stateHash: await context.hashSecret(state),
             provider: config.name,
             ...(codeVerifier ? { codeVerifier } : {}),
             ...(nonce ? { nonce } : {}),
             ...(config.redirectUri ? { redirectUri: config.redirectUri } : {}),
+            ...(options?.context ? { context: validateContext(options.context) } : {}),
             createdAt: now,
-            expiresAt,
-          };
-          const url = await createAuthorizationUrl(
-            config,
-            state,
-            codeVerifier,
-            nonce,
-            options
-          );
-          await config.stateStore.create(record);
-          return url;
+            expiresAt
+          }
+          const url = await createAuthorizationUrl(config, state, codeVerifier, nonce, options)
+          await config.stateStore.create(record)
+          return url
         },
 
         async completeAuthorization(input) {
-          validateCallbackValue(input.state, "state", 4_096);
-          validateCallbackValue(input.code, "code", 131_072);
-          const record = await consumeState(config, context, input.state);
-          const tokens = await exchangeCode(
-            config,
-            request,
-            input.code,
-            record,
-            context.now()
-          );
-          const claims = await validateIdToken(
-            config,
-            tokens,
-            record,
-            context.now
-          );
-          const identity = await config.resolveIdentity(tokens, claims);
+          validateCallbackValue(input.state, 'state', 4_096)
+          validateCallbackValue(input.code, 'code', 131_072)
+          const record = await consumeState(config, context, input.state)
+          const tokens = await exchangeCode(config, request, input.code, record, context.now())
+          const claims = await validateIdToken(config, tokens, record, context.now)
+          const identity = await config.resolveIdentity(tokens, claims, record.context ?? {})
           if (identity.provider !== config.name) {
-            throw new AuthError("identity_conflict");
+            throw new AuthError('identity_conflict')
           }
           if (!context.identities) {
-            throw new AuthError(
-              "unsupported_operation",
-              "An identity store is required for OAuth authentication."
-            );
+            throw new AuthError('unsupported_operation', 'An identity store is required for OAuth authentication.')
           }
-          const user = await context.identities.resolve(identity);
-          const issued = await context.issueSession(user.id);
+          const user = await context.identities.resolve(identity)
+          const issued = await context.issueSession(user.id)
           const session: AuthSession<User> = {
             user,
             token: issued.token,
-            expiresAt: issued.expiresAt,
-          };
-          return { status: "authenticated", session };
+            expiresAt: issued.expiresAt
+          }
+          return { status: 'authenticated', session }
         },
 
         refresh(refreshToken, scopes) {
-          validateOperationValue(refreshToken, "refresh token");
-          validateScopes(scopes ?? [], config.scopeSeparator ?? " ");
+          validateOperationValue(refreshToken, 'refresh token')
+          validateScopes(scopes ?? [], config.scopeSeparator ?? ' ')
           const body = new URLSearchParams({
-            grant_type: "refresh_token",
-            refresh_token: refreshToken,
-          });
+            grant_type: 'refresh_token',
+            refresh_token: refreshToken
+          })
           if (scopes?.length) {
-            body.set("scope", scopes.join(config.scopeSeparator ?? " "));
+            body.set('scope', scopes.join(config.scopeSeparator ?? ' '))
           }
-          return sendTokenRequest(
-            config,
-            request,
-            body,
-            context.now(),
-            "refresh_token"
-          );
+          return sendTokenRequest(config, request, body, context.now(), 'refresh_token')
         },
 
         async revoke(token) {
           if (!config.revocationEndpoint) {
-            throw new AuthError("unsupported_operation");
+            throw new AuthError('unsupported_operation')
           }
-          validateOperationValue(token, "revocation token");
-          const body = new URLSearchParams({ token });
-          applyTokenParameters(config, body, "revoke");
-          let response: Response;
+          validateOperationValue(token, 'revocation token')
+          const body = new URLSearchParams({ token })
+          applyTokenParameters(config, body, 'revoke')
+          let response: Response
           try {
             response = await requestWithTimeout(
               request,
               config.revocationEndpoint,
               {
-                method: "POST",
+                method: 'POST',
                 headers: await createTokenHeaders(config, body),
                 body,
-                redirect: "error",
+                redirect: 'error'
               },
               TOKEN_REQUEST_TIMEOUT_MS
-            );
+            )
           } catch (cause) {
-            throw new AuthError("provider_error", undefined, {
+            throw new AuthError('provider_error', undefined, {
               cause,
-              retryable: true,
-            });
+              retryable: true
+            })
           }
-          if (!response.ok) throw new AuthError("provider_error");
-        },
-      };
-    },
-  };
+          if (!response.ok) throw new AuthError('provider_error')
+        }
+      }
+    }
+  }
 }
 
-async function createAuthorizationUrl<
-  Name extends string,
-  User extends AuthUser,
->(
+async function createAuthorizationUrl<Name extends string, User extends AuthUser>(
   config: OAuthProviderConfig<Name, User>,
   state: string,
   codeVerifier: string | undefined,
   nonce: string | undefined,
   options: StartAuthorizationOptions | undefined
 ): Promise<URL> {
-  const url = new URL(config.authorizationEndpoint);
+  const url = new URL(config.authorizationEndpoint)
   const parameters = {
     ...config.authorizationParameters,
-    ...options?.authorizationParameters,
-  };
+    ...options?.authorizationParameters
+  }
   for (const [name, value] of Object.entries(parameters)) {
     if (RESERVED_AUTHORIZATION_PARAMETERS.has(name)) {
-      throw new AuthError(
-        "invalid_input",
-        `Authorization parameter '${name}' is reserved.`
-      );
+      throw new AuthError('invalid_input', `Authorization parameter '${name}' is reserved.`)
     }
-    url.searchParams.set(name, value);
+    url.searchParams.set(name, value)
   }
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set(config.clientIdParameter ?? "client_id", config.clientId);
+  url.searchParams.set('response_type', 'code')
+  url.searchParams.set(config.clientIdParameter ?? 'client_id', config.clientId)
   if (config.redirectUri) {
-    url.searchParams.set("redirect_uri", config.redirectUri);
+    url.searchParams.set('redirect_uri', config.redirectUri)
   }
-  url.searchParams.set("state", state);
+  url.searchParams.set('state', state)
   if (codeVerifier) {
-    url.searchParams.set("code_challenge_method", "S256");
-    const challenge = await sha256(textEncoder.encode(codeVerifier));
-    url.searchParams.set("code_challenge", encodeBase64Url(challenge));
+    url.searchParams.set('code_challenge_method', 'S256')
+    const challenge = await sha256(textEncoder.encode(codeVerifier))
+    url.searchParams.set('code_challenge', encodeBase64Url(challenge))
   }
-  if (nonce) url.searchParams.set("nonce", nonce);
-  const scopes = options?.scopes ?? config.scopes ?? [];
-  validateScopes(scopes, config.scopeSeparator ?? " ");
+  if (nonce) url.searchParams.set('nonce', nonce)
+  const scopes = options?.scopes ?? config.scopes ?? []
+  validateScopes(scopes, config.scopeSeparator ?? ' ')
   if (scopes.length) {
-    url.searchParams.set("scope", scopes.join(config.scopeSeparator ?? " "));
+    url.searchParams.set('scope', scopes.join(config.scopeSeparator ?? ' '))
   }
-  return url;
+  return url
+}
+
+function validateContext(context: Readonly<Record<string, string>>): Readonly<Record<string, string>> {
+  const entries = Object.entries(context)
+  if (
+    entries.length > 20 ||
+    entries.some(([key, value]) => !key || key.length > 128 || typeof value !== 'string' || value.length > 4_096)
+  ) {
+    throw new AuthError('invalid_input', 'OAuth context is invalid.')
+  }
+  return Object.freeze({ ...context })
 }
 
 async function consumeState<Name extends string, User extends AuthUser>(
   config: OAuthProviderConfig<Name, User>,
   context: {
-    now(): Date;
-    hashSecret(secret: string): Promise<string>;
+    now(): Date
+    hashSecret(secret: string): Promise<string>
   },
   state: string
 ): Promise<OAuthStateRecord> {
-  const record = await config.stateStore.consumeByStateHash(
-    await context.hashSecret(state)
-  );
+  const record = await config.stateStore.consumeByStateHash(await context.hashSecret(state))
   if (
     !record ||
     !(record.expiresAt instanceof Date) ||
     !Number.isFinite(record.expiresAt.getTime()) ||
     record.provider !== config.name ||
     record.redirectUri !== config.redirectUri ||
-    record.expiresAt.getTime() <=
-      requireValidDate(context.now(), "OAuth clock").getTime()
+    record.expiresAt.getTime() <= requireValidDate(context.now(), 'OAuth clock').getTime()
   ) {
-    throw new AuthError("invalid_callback");
+    throw new AuthError('invalid_callback')
   }
-  return record;
+  return record
 }
 
 async function exchangeCode<Name extends string, User extends AuthUser>(
@@ -248,18 +217,12 @@ async function exchangeCode<Name extends string, User extends AuthUser>(
   now: Date
 ): Promise<OAuthTokenSet> {
   const body = new URLSearchParams({
-    grant_type: "authorization_code",
-    code,
-  });
-  if (state.redirectUri) body.set("redirect_uri", state.redirectUri);
-  if (state.codeVerifier) body.set("code_verifier", state.codeVerifier);
-  return sendTokenRequest(
-    config,
-    request,
-    body,
-    now,
-    "authorization_code"
-  );
+    grant_type: 'authorization_code',
+    code
+  })
+  if (state.redirectUri) body.set('redirect_uri', state.redirectUri)
+  if (state.codeVerifier) body.set('code_verifier', state.codeVerifier)
+  return sendTokenRequest(config, request, body, now, 'authorization_code')
 }
 
 async function sendTokenRequest<Name extends string, User extends AuthUser>(
@@ -269,63 +232,58 @@ async function sendTokenRequest<Name extends string, User extends AuthUser>(
   now: Date,
   grant: OAuthTokenGrant
 ): Promise<OAuthTokenSet> {
-  applyTokenParameters(config, body, grant);
-  let response: Response;
+  applyTokenParameters(config, body, grant)
+  let response: Response
   try {
     response = await requestWithTimeout(
       request,
       config.tokenEndpoint,
       {
-        method: "POST",
+        method: 'POST',
         headers: await createTokenHeaders(config, body),
         body,
-        redirect: "error",
+        redirect: 'error'
       },
       TOKEN_REQUEST_TIMEOUT_MS
-    );
+    )
   } catch (cause) {
-    throw new AuthError("oauth_exchange_failed", undefined, {
+    throw new AuthError('oauth_exchange_failed', undefined, {
       cause,
-      retryable: true,
-    });
+      retryable: true
+    })
   }
-  return readTokenResponse(response, now, config.tokenResponsePath);
+  return readTokenResponse(response, now, config.tokenResponsePath)
 }
 
-async function createTokenHeaders<
-  Name extends string,
-  User extends AuthUser,
->(
+async function createTokenHeaders<Name extends string, User extends AuthUser>(
   config: OAuthProviderConfig<Name, User>,
   body: URLSearchParams
 ): Promise<Headers> {
   const headers = new Headers({
-    Accept: "application/json",
-    "Content-Type": "application/x-www-form-urlencoded",
-    ...config.tokenHeaders,
-  });
-  const method = config.clientAuthentication ?? "basic";
-  if (method === "basic") {
-    const clientSecret = await resolveClientSecret(config.clientSecret);
+    Accept: 'application/json',
+    'Content-Type': 'application/x-www-form-urlencoded',
+    ...config.tokenHeaders
+  })
+  const method = config.clientAuthentication ?? 'basic'
+  if (method === 'basic') {
+    const clientSecret = await resolveClientSecret(config.clientSecret)
     headers.set(
-      "Authorization",
+      'Authorization',
       `Basic ${btoa(`${encodeFormComponent(config.clientId)}:${encodeFormComponent(clientSecret)}`)}`
-    );
+    )
   } else {
-    body.set(config.clientIdParameter ?? "client_id", config.clientId);
-    if (method === "body") {
-      body.set("client_secret", await resolveClientSecret(config.clientSecret));
+    body.set(config.clientIdParameter ?? 'client_id', config.clientId)
+    if (method === 'body') {
+      body.set('client_secret', await resolveClientSecret(config.clientSecret))
     }
   }
-  return headers;
+  return headers
 }
 
-async function resolveClientSecret(
-  value: OAuthProviderConfig<string, AuthUser>["clientSecret"]
-): Promise<string> {
-  const secret = typeof value === "function" ? await value() : value;
-  if (!secret) throw new AuthError("invalid_input");
-  return secret;
+async function resolveClientSecret(value: OAuthProviderConfig<string, AuthUser>['clientSecret']): Promise<string> {
+  const secret = typeof value === 'function' ? await value() : value
+  if (!secret) throw new AuthError('invalid_input')
+  return secret
 }
 
 function applyTokenParameters<Name extends string, User extends AuthUser>(
@@ -333,10 +291,8 @@ function applyTokenParameters<Name extends string, User extends AuthUser>(
   body: URLSearchParams,
   grant: OAuthTokenGrant
 ): void {
-  for (const [name, value] of Object.entries(
-    config.tokenParameters?.[grant] ?? {}
-  )) {
-    if (!body.has(name)) body.set(name, value);
+  for (const [name, value] of Object.entries(config.tokenParameters?.[grant] ?? {})) {
+    if (!body.has(name)) body.set(name, value)
   }
 }
 
@@ -346,155 +302,115 @@ async function validateIdToken<Name extends string, User extends AuthUser>(
   state: OAuthStateRecord,
   clock: () => Date
 ): Promise<JwtClaims | null> {
-  if (!config.oidc) return null;
-  if (!tokens.idToken || !state.nonce) throw new AuthError("invalid_callback");
+  if (!config.oidc) return null
+  if (!tokens.idToken || !state.nonce) throw new AuthError('invalid_callback')
   try {
     const claims = await verifyJwt(tokens.idToken, {
       algorithms: config.oidc.algorithms,
       key: config.oidc.key,
       issuer: config.oidc.issuer,
       audience: config.oidc.audience ?? config.clientId,
-      clock,
-    });
-    validateOidcClaims(claims, config.clientId);
+      clock
+    })
+    validateOidcClaims(claims, config.clientId)
     if (claims.nonce !== state.nonce) {
-      throw new AuthError("invalid_callback");
+      throw new AuthError('invalid_callback')
     }
-    return claims;
+    return claims
   } catch (cause) {
-    if (cause instanceof AuthError) throw cause;
-    throw new AuthError("invalid_callback", "The ID token is invalid.", {
-      cause,
-    });
+    if (cause instanceof AuthError) throw cause
+    throw new AuthError('invalid_callback', 'The ID token is invalid.', {
+      cause
+    })
   }
 }
 
 function validateOidcClaims(claims: JwtClaims, clientId: string): void {
   const audiences =
-    typeof claims.aud === "string"
+    typeof claims.aud === 'string'
       ? [claims.aud]
-      : Array.isArray(claims.aud) &&
-          claims.aud.every(
-            (value) => typeof value === "string" && value.length > 0
-          )
-        ? claims.aud
-        : null;
+      : Array.isArray(claims.aud) && claims.aud.every((value) => typeof value === 'string' && value.length > 0)
+      ? claims.aud
+      : null
   const validRequiredClaims =
-    typeof claims.sub === "string" &&
+    typeof claims.sub === 'string' &&
     claims.sub.length > 0 &&
-    typeof claims.exp === "number" &&
+    typeof claims.exp === 'number' &&
     Number.isFinite(claims.exp) &&
-    typeof claims.iat === "number" &&
+    typeof claims.iat === 'number' &&
     Number.isFinite(claims.iat) &&
     audiences !== null &&
-    audiences.length > 0;
-  const authorisedParty = claims.azp;
-  const validAuthorisedParty =
-    (audiences?.length ?? 0) <= 1 || typeof authorisedParty === "string";
+    audiences.length > 0
+  const authorisedParty = claims.azp
+  const validAuthorisedParty = (audiences?.length ?? 0) <= 1 || typeof authorisedParty === 'string'
 
   if (
     !validRequiredClaims ||
     !validAuthorisedParty ||
     (authorisedParty !== undefined && authorisedParty !== clientId)
   ) {
-    throw new AuthError("invalid_callback", "The ID token claims are invalid.");
+    throw new AuthError('invalid_callback', 'The ID token claims are invalid.')
   }
 }
 
-function validateConfig<Name extends string, User extends AuthUser>(
-  config: OAuthProviderConfig<Name, User>
-): void {
-  for (const endpoint of [
-    config.authorizationEndpoint,
-    config.tokenEndpoint,
-    config.revocationEndpoint,
-  ]) {
-    if (!endpoint) continue;
-    const url = new URL(endpoint);
-    if (
-      url.protocol !== "https:" ||
-      url.username ||
-      url.password ||
-      url.hash
-    ) {
-      throw new AuthError("invalid_input", "OAuth endpoints must use HTTPS.");
+function validateConfig<Name extends string, User extends AuthUser>(config: OAuthProviderConfig<Name, User>): void {
+  for (const endpoint of [config.authorizationEndpoint, config.tokenEndpoint, config.revocationEndpoint]) {
+    if (!endpoint) continue
+    const url = new URL(endpoint)
+    if (url.protocol !== 'https:' || url.username || url.password || url.hash) {
+      throw new AuthError('invalid_input', 'OAuth endpoints must use HTTPS.')
     }
   }
   if (!config.name || !config.clientId) {
-    throw new AuthError("invalid_input");
+    throw new AuthError('invalid_input')
   }
-  validateScopes(config.scopes ?? [], config.scopeSeparator ?? " ");
+  validateScopes(config.scopes ?? [], config.scopeSeparator ?? ' ')
   if (config.oidc && config.oidc.algorithms.length === 0) {
-    throw new AuthError(
-      "invalid_input",
-      "OIDC requires at least one allowed signing algorithm."
-    );
+    throw new AuthError('invalid_input', 'OIDC requires at least one allowed signing algorithm.')
   }
-  if (
-    config.stateTtlMs !== undefined &&
-    (!Number.isSafeInteger(config.stateTtlMs) || config.stateTtlMs <= 0)
-  ) {
-    throw new AuthError(
-      "invalid_input",
-      "OAuth state lifetime must be a positive integer."
-    );
+  if (config.stateTtlMs !== undefined && (!Number.isSafeInteger(config.stateTtlMs) || config.stateTtlMs <= 0)) {
+    throw new AuthError('invalid_input', 'OAuth state lifetime must be a positive integer.')
   }
   if (config.redirectUri) {
-    const redirectUri = new URL(config.redirectUri);
+    const redirectUri = new URL(config.redirectUri)
     const localHttp =
-      redirectUri.protocol === "http:" &&
-      ["127.0.0.1", "localhost", "[::1]"].includes(redirectUri.hostname);
+      redirectUri.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].includes(redirectUri.hostname)
     if (
-      (redirectUri.protocol !== "https:" && !localHttp) ||
+      (redirectUri.protocol !== 'https:' && !localHttp) ||
       redirectUri.username ||
       redirectUri.password ||
       redirectUri.hash
     ) {
-      throw new AuthError("invalid_input", "OAuth redirect URI is invalid.");
+      throw new AuthError('invalid_input', 'OAuth redirect URI is invalid.')
     }
   }
 }
 
-function validateCallbackValue(
-  value: string,
-  field: string,
-  maxLength: number
-): void {
-  if (
-    typeof value !== "string" ||
-    value.length === 0 ||
-    value.length > maxLength
-  ) {
-    throw new AuthError("invalid_callback", `OAuth ${field} is invalid.`);
+function validateCallbackValue(value: string, field: string, maxLength: number): void {
+  if (typeof value !== 'string' || value.length === 0 || value.length > maxLength) {
+    throw new AuthError('invalid_callback', `OAuth ${field} is invalid.`)
   }
 }
 
 function validateOperationValue(value: string, field: string): void {
-  if (
-    typeof value !== "string" ||
-    value.length === 0 ||
-    value.length > 131_072
-  ) {
-    throw new AuthError("invalid_input", `OAuth ${field} is invalid.`);
+  if (typeof value !== 'string' || value.length === 0 || value.length > 131_072) {
+    throw new AuthError('invalid_input', `OAuth ${field} is invalid.`)
   }
 }
 
-function validateScopes(
-  scopes: readonly string[],
-  separator: " " | ","
-): void {
+function validateScopes(scopes: readonly string[], separator: ' ' | ','): void {
   if (
     !Array.isArray(scopes) ||
     scopes.length > 100 ||
     scopes.some(
       (scope) =>
-        typeof scope !== "string" ||
+        typeof scope !== 'string' ||
         scope.length === 0 ||
         scope.length > 1024 ||
         /\s/u.test(scope) ||
-        (separator === "," && scope.includes(","))
+        (separator === ',' && scope.includes(','))
     )
   ) {
-    throw new AuthError("invalid_input", "OAuth scopes are invalid.");
+    throw new AuthError('invalid_input', 'OAuth scopes are invalid.')
   }
 }

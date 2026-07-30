@@ -1,0 +1,31 @@
+{
+  "name": "@ngriffin_uk/auth-magic-link",
+  "version": "0.0.0",
+  "description": "Single-use email link and verification-code authentication",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsc -p tsconfig.test.json && node --test .test-dist/**/*.test.js"
+  },
+  "dependencies": {
+    "@ngriffin_uk/auth-core": "workspace:^",
+    "@ngriffin_uk/auth-crypto": "workspace:^"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "Apache-2.0"
+}

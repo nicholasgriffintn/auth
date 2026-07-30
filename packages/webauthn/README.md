@@ -8,17 +8,17 @@ pnpm add @ngriffin_uk/auth-core @ngriffin_uk/auth-webauthn
 ```
 
 ```ts
-import { webAuthn } from "@ngriffin_uk/auth-webauthn";
+import { webAuthn } from '@ngriffin_uk/auth-webauthn'
 
 const auth = baseAuth.use(
   webAuthn({
-    rpId: "example.com",
-    rpName: "Example",
-    origins: ["https://example.com"],
+    rpId: 'example.com',
+    rpName: 'Example',
+    origins: ['https://example.com'],
     store: credentialStore,
-    requireUserVerification: true,
+    requireUserVerification: true
   })
-);
+)
 ```
 
 The service implements `WebAuthnStore`; `updateSignCount` must compare and

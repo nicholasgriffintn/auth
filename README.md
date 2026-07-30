@@ -12,8 +12,8 @@ database, cookies, HTTP routes, redirects, secrets, and domain user model.
 
 - `@ngriffin_uk/auth-core` provides sessions, opaque challenges, storage
   contracts, and typed middleware registration.
-- `@ngriffin_uk/auth-password`, `auth-otp`, and `auth-webauthn` add local
-  authentication capabilities.
+- `@ngriffin_uk/auth-password`, `auth-magic-link`, `auth-otp`, and
+  `auth-webauthn` add local authentication capabilities.
 - `@ngriffin_uk/auth-provider-*` packages add OAuth/OIDC providers. The Amazon
   Cognito provider also supports direct user-pool challenge flows.
 - `@ngriffin_uk/auth-react` renders configurable, unstyled authentication
@@ -33,25 +33,25 @@ Implement the storage ports with your service's database, then add provider
 middleware:
 
 ```ts
-import { createAuth } from "@ngriffin_uk/auth-core";
-import { createGitHubAuth } from "@ngriffin_uk/auth-provider-github";
+import { createAuth } from '@ngriffin_uk/auth-core'
+import { createGitHubAuth } from '@ngriffin_uk/auth-provider-github'
 
 const auth = createAuth({
   users,
   sessions,
   challenges,
-  identities,
+  identities
 }).use(
   createGitHubAuth({
     clientId: env.GITHUB_CLIENT_ID,
     clientSecret: env.GITHUB_CLIENT_SECRET,
-    redirectUri: "https://app.example.com/auth/github/callback",
+    redirectUri: 'https://app.example.com/auth/github/callback',
     stateStore: oauthStates,
-    resolveIdentity: async (tokens) => loadGitHubIdentity(tokens.accessToken),
+    resolveIdentity: async (tokens) => loadGitHubIdentity(tokens.accessToken)
   })
-);
+)
 
-const redirectUrl = await auth.providers.github.startAuthorization();
+const redirectUrl = await auth.providers.github.startAuthorization()
 ```
 
 The service must:
@@ -69,30 +69,30 @@ The UI calls one transport owned by the application. This keeps routing,
 cookies, server functions, and provider SDKs outside the component package.
 
 ```tsx
-import { AuthFlow, AuthProvider } from "@ngriffin_uk/auth-react";
+import { AuthFlow, AuthProvider } from '@ngriffin_uk/auth-react'
 
-<AuthProvider
+;<AuthProvider
   config={{
     transport: {
       execute: (request) =>
-        fetch("/api/auth", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(request),
-        }).then((response) => response.json()),
+        fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(request)
+        }).then((response) => response.json())
     },
     capabilities: {
       password: true,
       passkeys: true,
       signUp: true,
-      recovery: true,
+      recovery: true
     },
-    providers: [{ id: "github", label: "Continue with GitHub" }],
-    onRedirect: (url) => window.location.assign(url),
+    providers: [{ id: 'github', label: 'Continue with GitHub' }],
+    onRedirect: (url) => window.location.assign(url)
   }}
 >
   <AuthFlow />
-</AuthProvider>;
+</AuthProvider>
 ```
 
 Components ship without CSS. Use the `auth-*` classes, `data-auth-view`,
