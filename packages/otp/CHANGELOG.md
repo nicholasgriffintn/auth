@@ -1,5 +1,15 @@
 # @ngriffin_uk/auth-otp
 
+## 0.4.2
+
+### Patch Changes
+
+- chore: bump
+- Updated dependencies
+  - @ngriffin_uk/auth-core@0.4.2
+  - @ngriffin_uk/auth-crypto@1.0.3
+  - @ngriffin_uk/auth-encoding@0.2.4
+
 ## 0.4.1
 
 ### Patch Changes

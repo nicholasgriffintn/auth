@@ -12,7 +12,7 @@
     "check": "pnpm typecheck && pnpm test",
     "changeset:generate": "pnpm changeset",
     "changeset:version": "pnpm changeset version",
-    "publish": "pnpm publish -r"
+    "publish": "pnpm build && pnpm publish -r"
   },
   "keywords": [],
   "author": "Nicholas Griffin",

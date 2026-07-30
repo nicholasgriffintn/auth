@@ -1,5 +1,15 @@
 # @ngriffin_uk/auth-jwt
 
+## 1.1.3
+
+### Patch Changes
+
+- chore: bump
+- Updated dependencies
+  - @ngriffin_uk/auth-crypto@1.0.3
+  - @ngriffin_uk/auth-encoding@0.2.4
+  - @ngriffin_uk/auth-request@0.2.4
+
 ## 1.1.2
 
 ### Patch Changes

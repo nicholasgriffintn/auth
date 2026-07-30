@@ -1,5 +1,14 @@
 # @ngriffin_uk/auth-provider-slack
 
+## 3.0.2
+
+### Patch Changes
+
+- chore: bump
+- Updated dependencies
+  - @ngriffin_uk/auth-core@0.4.2
+  - @ngriffin_uk/auth-oauth2@3.0.3
+
 ## 3.0.1
 
 ### Patch Changes

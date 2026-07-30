@@ -1,5 +1,14 @@
 # @ngriffin_uk/auth-password-hash
 
+## 0.3.2
+
+### Patch Changes
+
+- chore: bump
+- Updated dependencies
+  - @ngriffin_uk/auth-crypto@1.0.3
+  - @ngriffin_uk/auth-encoding@0.2.4
+
 ## 0.3.1
 
 ### Patch Changes

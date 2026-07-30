@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-jwt",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "JWT signing, verification, claim validation, and JWK selection",
   "type": "module",
   "sideEffects": false,
@@ -21,9 +21,9 @@
     "test": "tsc -p tsconfig.test.json && node --test .test-dist/**/*.test.js"
   },
   "peerDependencies": {
-    "@ngriffin_uk/auth-crypto": "^1.0.2",
-    "@ngriffin_uk/auth-encoding": "^0.2.3",
-    "@ngriffin_uk/auth-request": "^0.2.3"
+    "@ngriffin_uk/auth-crypto": "^1.0.3",
+    "@ngriffin_uk/auth-encoding": "^0.2.4",
+    "@ngriffin_uk/auth-request": "^0.2.4"
   },
   "devDependencies": {
     "@ngriffin_uk/auth-crypto": "workspace:*",

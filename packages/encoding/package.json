@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-encoding",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Runtime-neutral authentication encoding primitives",
   "type": "module",
   "sideEffects": false,

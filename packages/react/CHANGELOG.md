@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-react
 
+## 0.4.2
+
+### Patch Changes
+
+- chore: bump
+
 ## 0.4.1
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ngriffin_uk/auth-magic-link
 
+## 0.0.3
+
+### Patch Changes
+
+- chore: bump
+- Updated dependencies
+  - @ngriffin_uk/auth-core@0.4.2
+  - @ngriffin_uk/auth-crypto@1.0.3
+
 ## 0.0.2
 
 ### Patch Changes

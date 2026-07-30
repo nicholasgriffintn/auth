@@ -1,5 +1,24 @@
 # @ngriffin_uk/auth-website
 
+## 0.2.3
+
+### Patch Changes
+
+- chore: bump
+- Updated dependencies
+  - @ngriffin_uk/auth-cookie@0.2.4
+  - @ngriffin_uk/auth-core@0.4.2
+  - @ngriffin_uk/auth-encoding@0.2.4
+  - @ngriffin_uk/auth-oauth2@3.0.3
+  - @ngriffin_uk/auth-otp@0.4.2
+  - @ngriffin_uk/auth-password@3.0.2
+  - @ngriffin_uk/auth-password-hash@0.3.2
+  - @ngriffin_uk/auth-react@0.4.2
+  - @ngriffin_uk/auth-request@0.2.4
+  - @ngriffin_uk/auth-webauthn@0.4.2
+  - @ngriffin_uk/auth-provider-amazon-cognito@3.0.3
+  - @ngriffin_uk/auth-provider-github@3.0.2
+
 ## 0.2.2
 
 ### Patch Changes
