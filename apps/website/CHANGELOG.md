@@ -1,5 +1,15 @@
 # @ngriffin_uk/auth-website
 
+## 0.2.1
+
+### Patch Changes
+
+- 0d80851: fix: set redirect to manual
+- Updated dependencies [0d80851]
+  - @ngriffin_uk/auth-provider-amazon-cognito@3.0.1
+  - @ngriffin_uk/auth-oauth2@3.0.1
+  - @ngriffin_uk/auth-provider-github@3.0.0
+
 ## 0.2.0
 
 ### Minor Changes

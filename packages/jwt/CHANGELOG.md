@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-jwt
 
+## 1.1.1
+
+### Patch Changes
+
+- 0d80851: fix: set redirect to manual
+
 ## 1.1.0
 
 ### Minor Changes

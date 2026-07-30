@@ -21,8 +21,8 @@
   },
   "peerDependencies": {
     "@ngriffin_uk/auth-core": "^0.4.0",
-    "@ngriffin_uk/auth-oauth2": "^3.0.0",
-    "@ngriffin_uk/auth-jwt": "^1.1.0"
+    "@ngriffin_uk/auth-oauth2": "^3.0.1",
+    "@ngriffin_uk/auth-jwt": "^1.1.1"
   },
   "devDependencies": {
     "@ngriffin_uk/auth-core": "workspace:*",

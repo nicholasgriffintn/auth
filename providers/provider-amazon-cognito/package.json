@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-provider-amazon-cognito",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "amazon-cognito authentication provider for @ngriffin_uk/auth-core",
   "type": "module",
   "sideEffects": false,
@@ -24,8 +24,8 @@
     "@ngriffin_uk/auth-core": "^0.4.0",
     "@ngriffin_uk/auth-crypto": "^1.0.1",
     "@ngriffin_uk/auth-encoding": "^0.2.2",
-    "@ngriffin_uk/auth-jwt": "^1.1.0",
-    "@ngriffin_uk/auth-oauth2": "^3.0.0",
+    "@ngriffin_uk/auth-jwt": "^1.1.1",
+    "@ngriffin_uk/auth-oauth2": "^3.0.1",
     "@ngriffin_uk/auth-request": "^0.2.2"
   },
   "devDependencies": {
