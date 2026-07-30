@@ -1,5 +1,12 @@
 # @ngriffin_uk/auth-website
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @ngriffin_uk/auth-react@0.6.0
+
 ## 0.3.0
 
 ### Minor Changes

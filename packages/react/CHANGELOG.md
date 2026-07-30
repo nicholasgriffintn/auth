@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-react
 
+## 0.6.0
+
+### Minor Changes
+
+- feat: display auth dialogs
+
 ## 0.5.0
 
 ### Minor Changes

@@ -35,3 +35,6 @@ Your application must:
 Set `endpoint` only when the authentication API is hosted elsewhere. The
 package provides the browser UI for OAuth, direct Apple sign-in, password and
 magic-link flows, MFA, recovery codes, TOTP QR codes, and WebAuthn.
+
+Use `<AuthProviderList fieldPresentation="modal" />` when provider fields should
+open in a modal instead of expanding in the provider list.

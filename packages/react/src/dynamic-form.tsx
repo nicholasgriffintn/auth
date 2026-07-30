@@ -20,6 +20,8 @@ export function DynamicAuthForm({
   submitLabel,
   submitting,
   onSubmit,
+  cancelLabel,
+  onCancel,
 }: {
   readonly config: ResolvedAuthUiConfig;
   readonly fields: readonly AuthField[];
@@ -28,6 +30,8 @@ export function DynamicAuthForm({
   readonly onSubmit: (
     values: Readonly<Record<string, string | boolean>>
   ) => void | Promise<void>;
+  readonly cancelLabel?: string;
+  readonly onCancel?: () => void;
 }) {
   const formId = useId();
   const [values, setValues] = useState<Record<string, string | boolean>>(() =>
@@ -160,13 +164,33 @@ export function DynamicAuthForm({
           {validationError}
         </div>
       ) : null}
-      <button
-        className={className(config, "button")}
-        disabled={submitting}
-        type="submit"
-      >
-        {submitLabel}
-      </button>
+      {onCancel && cancelLabel ? (
+        <div className={className(config, "actions")}>
+          <button
+            className={className(config, "linkButton")}
+            disabled={submitting}
+            onClick={onCancel}
+            type="button"
+          >
+            {cancelLabel}
+          </button>
+          <button
+            className={className(config, "button")}
+            disabled={submitting}
+            type="submit"
+          >
+            {submitLabel}
+          </button>
+        </div>
+      ) : (
+        <button
+          className={className(config, "button")}
+          disabled={submitting}
+          type="submit"
+        >
+          {submitLabel}
+        </button>
+      )}
     </form>
   );
 }
