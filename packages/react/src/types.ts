@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react'
-
 export type AuthChallengeKind =
   | 'custom'
   | 'email_otp'
@@ -133,8 +131,6 @@ export type AuthProviderFieldPresentation = 'inline' | 'modal'
 export interface ExternalAuthProvider {
   readonly id: string
   readonly label: string
-  readonly icon?: ReactNode
-  readonly strategy?: 'apple_direct' | 'oauth'
   readonly clientId?: string
   readonly redirectUri?: string
   readonly scope?: string

@@ -5,7 +5,7 @@ import {
   authStateReducer,
   createInitialAuthState,
   INITIAL_AUTH_STATE
-} from './state.js'
+} from '../state.js'
 
 describe('authentication UI state', () => {
   it('starts with a service-provided error from a completed redirect', () => {
@@ -111,6 +111,22 @@ describe('authentication UI state', () => {
       }
     })
     assert.equal(state.view, 'recovery_codes')
+  })
+
+  it('keeps controls disabled while an OAuth redirect is in progress', () => {
+    const state = authStateReducer(
+      { view: 'sign_in', submitting: true },
+      {
+        type: 'result',
+        result: {
+          status: 'redirect_required',
+          provider: 'github',
+          url: 'https://github.com/login/oauth/authorize'
+        }
+      }
+    )
+
+    assert.equal(state.submitting, true)
   })
 
   it('switches to a server-issued fallback challenge', () => {

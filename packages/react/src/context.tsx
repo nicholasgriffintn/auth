@@ -66,6 +66,7 @@ export function AuthProvider<User>({
   );
   const [recoveryCodes, setRecoveryCodes] = useState<readonly string[]>([]);
   const pendingUser = useRef<User | undefined>(undefined);
+  const requestInFlight = useRef(false);
 
   const report = useCallback(
     (event: AuthAnalyticsEvent) => {
@@ -80,6 +81,8 @@ export function AuthProvider<User>({
 
   const submit = useCallback(
     async (request: AuthRequest) => {
+      if (requestInFlight.current) return;
+      requestInFlight.current = true;
       const provider =
         "provider" in request ? { provider: request.provider } : {};
       dispatch({ type: "submit" });
@@ -108,8 +111,12 @@ export function AuthProvider<User>({
           }
           report({ name: "redirect", status: result.status });
         }
+        if (result.status !== "redirect_required") {
+          requestInFlight.current = false;
+        }
         dispatch({ type: "result", result });
       } catch (error) {
+        requestInFlight.current = false;
         const message =
           resolvedConfig.mapError?.(error) ?? config.copy.genericError;
         dispatch({ type: "error", message });

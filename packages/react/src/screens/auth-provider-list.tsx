@@ -14,9 +14,7 @@ export function AuthProviderList({
   readonly fieldPresentation?: AuthProviderFieldPresentation
 }) {
   const { config, state, submit } = useAuth()
-  const appleProvider = config.providers.find(
-    (provider) => provider.strategy === 'apple_direct'
-  )
+  const appleProvider = config.providers.find((provider) => provider.id === 'apple')
 
   if (config.providers.length === 0 && !config.capabilities.passkeys) return null
 

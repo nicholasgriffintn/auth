@@ -97,6 +97,12 @@ function stateFromResult(state: AuthState, result: AuthClientResult): AuthState 
       status: 'Authentication complete.'
     }
   }
+  if (result.status === 'redirect_required') {
+    return {
+      ...state,
+      submitting: true
+    }
+  }
   const { error: _error, ...current } = state
   return {
     ...current,

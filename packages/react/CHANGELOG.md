@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-react
 
+## 0.6.3
+
+### Patch Changes
+
+- chore: refactor
+
 ## 0.6.2
 
 ### Patch Changes

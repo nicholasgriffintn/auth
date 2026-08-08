@@ -1,4 +1,5 @@
 import { Fragment, useRef, useState } from 'react'
+import { LogIn } from 'lucide-react'
 
 import { className, combineClassNames } from '../config.js'
 import { useAuth } from '../context.js'
@@ -57,7 +58,7 @@ export function ExternalProviderControl({
           onClick={startProvider}
           type="button"
         >
-          {provider.icon}
+          <LogIn aria-hidden="true" size={16} />
           <span>{provider.label}</span>
         </button>
         {fields.length > 0 && fieldPresentation === 'modal' ? (
