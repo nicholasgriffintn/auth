@@ -1,5 +1,13 @@
 # @ngriffin_uk/auth-website
 
+## 0.3.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @ngriffin_uk/auth-webauthn@0.4.3
+  - @ngriffin_uk/auth-react@0.6.2
+
 ## 0.3.2
 
 ### Patch Changes

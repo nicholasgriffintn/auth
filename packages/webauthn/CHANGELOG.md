@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-webauthn
 
+## 0.4.3
+
+### Patch Changes
+
+- chore: refactoring
+
 ## 0.4.2
 
 ### Patch Changes

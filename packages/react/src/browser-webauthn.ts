@@ -1,4 +1,36 @@
-import type { AuthClientChallenge } from './types.js'
+import { challengeStringParameters } from './challenge.js'
+import type {
+  AuthClientChallenge,
+  AuthClientResult,
+  AuthTransport
+} from './types.js'
+
+export async function completeBrowserWebAuthn<User>(
+  transport: AuthTransport<User>,
+  ceremony: 'authentication' | 'registration'
+): Promise<AuthClientResult<User>> {
+  const started = await transport.execute(
+    ceremony === 'registration'
+      ? { action: 'start_webauthn_registration' }
+      : { action: 'start_passkey', values: {} }
+  )
+  if (
+    started.status !== 'webauthn_challenge_required' ||
+    started.challenge.kind !== 'webauthn' ||
+    started.challenge.parameters?.ceremony !== ceremony
+  ) {
+    throw new Error('The authentication service returned an invalid passkey challenge.')
+  }
+  return transport.execute({
+    action: 'continue',
+    continuationToken: started.challenge.continuationToken,
+    kind: 'webauthn',
+    values: {
+      ...challengeStringParameters(started.challenge),
+      ...(await resolveBrowserWebAuthn(started.challenge))
+    }
+  })
+}
 
 export async function resolveBrowserWebAuthn(
   challenge: AuthClientChallenge
