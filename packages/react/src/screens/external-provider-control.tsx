@@ -1,6 +1,5 @@
 import { Fragment, useRef, useState } from 'react'
 
-import { AppleDirectProviderControl } from '../apple-direct-provider.js'
 import { className, combineClassNames } from '../config.js'
 import { useAuth } from '../context.js'
 import { DynamicAuthForm } from '../dynamic-form.js'
@@ -19,10 +18,6 @@ export function ExternalProviderControl({
   const dialog = useRef<HTMLDialogElement>(null)
   const [expanded, setExpanded] = useState(false)
   const fields = provider.fields ?? []
-
-  if (provider.strategy === 'apple_direct') {
-    return <AppleDirectProviderControl provider={provider} />
-  }
 
   function startProvider(): void {
     if (fields.length === 0) {

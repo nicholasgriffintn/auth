@@ -15,14 +15,29 @@ const DEFAULT_EMAIL_FIELD: AuthField = {
 
 export function SignInScreen() {
   const { config, state, navigate, submit } = useAuth()
+  const descriptionId = config.copy.signInDescription
+    ? 'auth-sign-in-description'
+    : undefined
   const emailField =
     config.signInFields.find((field) => field.name === 'email') ?? DEFAULT_EMAIL_FIELD
 
   return (
-    <section aria-labelledby="auth-sign-in-title" data-auth-screen="sign-in">
-      <h2 className={className(config, 'title')} id="auth-sign-in-title">
-        {config.copy.signInTitle}
-      </h2>
+    <section
+      aria-describedby={descriptionId}
+      aria-labelledby="auth-sign-in-title"
+      className={className(config, 'signIn')}
+      data-auth-screen="sign-in"
+    >
+      <header className={className(config, 'header')}>
+        <h2 className={className(config, 'title')} id="auth-sign-in-title">
+          {config.copy.signInTitle}
+        </h2>
+        {config.copy.signInDescription ? (
+          <p className={className(config, 'description')} id={descriptionId}>
+            {config.copy.signInDescription}
+          </p>
+        ) : null}
+      </header>
       {config.capabilities.password ? (
         <DynamicAuthForm
           config={config}
@@ -32,6 +47,7 @@ export function SignInScreen() {
           submitting={state.submitting}
         />
       ) : null}
+      <AuthProviderList />
       {config.capabilities.magicLink ? (
         <DynamicAuthForm
           config={config}
@@ -42,41 +58,33 @@ export function SignInScreen() {
               values: { email: String(values['email'] ?? '') }
             })
           }
+          magicLink
           submitLabel={config.copy.magicLinkSubmit}
           submitting={state.submitting}
         />
       ) : null}
-      <AuthProviderList />
-      {config.capabilities.passkeys ? (
-        <button
-          className={className(config, 'button')}
-          disabled={state.submitting}
-          onClick={() => void submit({ action: 'start_passkey', values: {} })}
-          type="button"
-        >
-          {config.copy.passkeyLabel}
-        </button>
+      {config.capabilities.recovery || config.capabilities.signUp ? (
+        <div className={className(config, 'actions')}>
+          {config.capabilities.recovery ? (
+            <button
+              className={className(config, 'linkButton')}
+              onClick={() => navigate('forgot_password')}
+              type="button"
+            >
+              {config.copy.recoveryTitle}
+            </button>
+          ) : null}
+          {config.capabilities.signUp ? (
+            <button
+              className={className(config, 'linkButton')}
+              onClick={() => navigate('sign_up')}
+              type="button"
+            >
+              {config.copy.signUpTitle}
+            </button>
+          ) : null}
+        </div>
       ) : null}
-      <div className={className(config, 'actions')}>
-        {config.capabilities.recovery ? (
-          <button
-            className={className(config, 'linkButton')}
-            onClick={() => navigate('forgot_password')}
-            type="button"
-          >
-            {config.copy.recoveryTitle}
-          </button>
-        ) : null}
-        {config.capabilities.signUp ? (
-          <button
-            className={className(config, 'linkButton')}
-            onClick={() => navigate('sign_up')}
-            type="button"
-          >
-            {config.copy.signUpTitle}
-          </button>
-        ) : null}
-      </div>
     </section>
   )
 }

@@ -1,5 +1,11 @@
 # @ngriffin_uk/auth-react
 
+## 0.6.1
+
+### Patch Changes
+
+- chore: restructure the form
+
 ## 0.6.0
 
 ### Minor Changes

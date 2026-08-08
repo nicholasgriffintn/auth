@@ -1,8 +1,5 @@
-import {
-  useId,
-  useState,
-  type FormEvent,
-} from "react";
+import { Mail } from "lucide-react";
+import { useId, useState, type FormEvent } from "react";
 
 import { className } from "./config.js";
 import {
@@ -20,6 +17,7 @@ export function DynamicAuthForm({
   submitLabel,
   submitting,
   onSubmit,
+  magicLink = false,
   cancelLabel,
   onCancel,
 }: {
@@ -30,6 +28,7 @@ export function DynamicAuthForm({
   readonly onSubmit: (
     values: Readonly<Record<string, string | boolean>>
   ) => void | Promise<void>;
+  readonly magicLink?: boolean;
   readonly cancelLabel?: string;
   readonly onCancel?: () => void;
 }) {
@@ -175,20 +174,34 @@ export function DynamicAuthForm({
             {cancelLabel}
           </button>
           <button
-            className={className(config, "button")}
+            className={className(config, magicLink ? "magicLinkButton" : "button")}
             disabled={submitting}
             type="submit"
           >
-            {submitLabel}
+            {magicLink ? (
+              <>
+                <Mail aria-hidden="true" size={16} />
+                <span>{submitLabel}</span>
+              </>
+            ) : (
+              submitLabel
+            )}
           </button>
         </div>
       ) : (
         <button
-          className={className(config, "button")}
+          className={className(config, magicLink ? "magicLinkButton" : "button")}
           disabled={submitting}
           type="submit"
         >
-          {submitLabel}
+          {magicLink ? (
+            <>
+              <Mail aria-hidden="true" size={16} />
+              <span>{submitLabel}</span>
+            </>
+          ) : (
+            submitLabel
+          )}
         </button>
       )}
     </form>

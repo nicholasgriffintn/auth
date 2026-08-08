@@ -1,6 +1,6 @@
 {
   "name": "@ngriffin_uk/auth-react",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Configurable unstyled React authentication components",
   "type": "module",
   "sideEffects": false,
@@ -24,6 +24,7 @@
     "react": ">=18.2.0"
   },
   "dependencies": {
+    "lucide-react": "1.28.0",
     "qrcode.react": "^4.2.0"
   },
   "devDependencies": {

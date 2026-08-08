@@ -11,6 +11,8 @@ import { resolveBrowserWebAuthn } from './browser-webauthn.js'
 
 export const DEFAULT_COPY: AuthCopy = {
   signInTitle: 'Sign in',
+  signInDescription: '',
+  signInSeparator: 'Or continue with',
   signInSubmit: 'Sign in',
   signUpTitle: 'Create an account',
   signUpSubmit: 'Create account',
@@ -103,6 +105,12 @@ export const DEFAULT_SIGN_UP_FIELDS: readonly AuthField[] = [
 ]
 
 export function resolveConfig<User>(config: AuthProviderConfig<User>) {
+  const capabilities = {
+    ...DEFAULT_CAPABILITIES,
+    ...config.capabilities
+  }
+  const providers = config.providers ?? []
+
   return {
     ...config,
     transport:
@@ -111,22 +119,24 @@ export function resolveConfig<User>(config: AuthProviderConfig<User>) {
         config.endpoint ? { endpoint: config.endpoint } : undefined
       ),
     resolveWebAuthn: config.resolveWebAuthn ?? resolveBrowserWebAuthn,
-    capabilities: {
-      ...DEFAULT_CAPABILITIES,
-      ...config.capabilities
-    },
+    capabilities,
     copy: {
       ...DEFAULT_COPY,
       ...config.copy
     },
     signInFields: config.signInFields ?? DEFAULT_SIGN_IN_FIELDS,
     signUpFields: config.signUpFields ?? DEFAULT_SIGN_UP_FIELDS,
-    providers: config.providers ?? []
+    providers
   }
 }
 
 export function className(config: Pick<AuthProviderConfig, 'classNames'>, key: AuthClassName): string {
-  return config.classNames?.[key] ?? `auth-${toKebabCase(key)}`
+  const configured = config.classNames?.[key]
+  if (configured) return configured
+  if (key === 'magicLinkButton' || key === 'passkeyButton') {
+    return config.classNames?.button ?? 'auth-button'
+  }
+  return `auth-${toKebabCase(key)}`
 }
 
 export function combineClassNames(...values: readonly (string | undefined)[]): string {

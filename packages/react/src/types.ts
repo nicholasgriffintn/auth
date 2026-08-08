@@ -158,6 +158,8 @@ export interface AuthCapabilities {
 
 export interface AuthCopy {
   readonly signInTitle: string
+  readonly signInDescription: string
+  readonly signInSeparator: string
   readonly signInSubmit: string
   readonly signUpTitle: string
   readonly signUpSubmit: string
@@ -218,11 +220,7 @@ export interface AuthProviderConfig<User = unknown> {
   readonly resolveWebAuthn?: (challenge: AuthClientChallenge) => Promise<Readonly<Record<string, string>>>
 }
 
-export type ResolvedAuthUiConfig = Pick<
-  AuthProviderConfig,
-  | 'classNames'
-  | 'resolveWebAuthn'
-> & {
+export type ResolvedAuthUiConfig = Pick<AuthProviderConfig, 'classNames' | 'resolveWebAuthn'> & {
   readonly capabilities: Required<AuthCapabilities>
   readonly providers: readonly ExternalAuthProvider[]
   readonly signInFields: readonly AuthField[]
@@ -240,10 +238,13 @@ export type AuthClassName =
   | 'error'
   | 'field'
   | 'form'
+  | 'header'
   | 'input'
   | 'label'
   | 'linkButton'
+  | 'magicLinkButton'
   | 'panel'
+  | 'passkeyButton'
   | 'providerButton'
   | 'providerList'
   | 'recoveryCodes'
@@ -251,6 +252,7 @@ export type AuthClassName =
   | 'securityItem'
   | 'securityList'
   | 'separator'
+  | 'signIn'
   | 'status'
   | 'title'
   | 'totpQrCode'
